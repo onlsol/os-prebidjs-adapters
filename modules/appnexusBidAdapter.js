@@ -1,7 +1,8 @@
 import { Renderer } from '../src/Renderer';
 import * as utils from '../src/utils';
+import { config } from '../src/config';
 import { registerBidder } from '../src/adapters/bidderFactory';
-import { BANNER, NATIVE, VIDEO } from '../src/mediaTypes';
+import { BANNER, NATIVE, VIDEO, ADPOD } from '../src/mediaTypes';
 import find from 'core-js/library/fn/array/find';
 import includes from 'core-js/library/fn/array/includes';
 
@@ -36,6 +37,7 @@ const mappingFileInfo = Object.freeze({
   mappingFileUrl: 'http://sample.com/mappnig.json',
   uniqueKey: utils.getUniqueIdentifierStr()
 });
+const MAX_IMPS_PER_REQUEST = 15;
 
 export const spec = {
   code: BIDDER_CODE,
@@ -123,6 +125,7 @@ export const spec = {
         version: '$prebid.version$'
       }
     };
+
     if (member > 0) {
       payload.member_id = member;
     }
@@ -132,6 +135,10 @@ export const spec = {
     }
     if (appIdObjBid) {
       payload.app = appIdObj;
+    }
+
+    if (config.getConfig('adpod.brandCategoryExclusion')) {
+      payload.brand_cat_uniqueness = true;
     }
 
     if (debugObjParams.enabled) {
@@ -157,13 +164,18 @@ export const spec = {
       payload.referrer_detection = refererinfo;
     }
 
-    const payloadString = JSON.stringify(payload);
-    return {
-      method: 'POST',
-      url: URL,
-      data: payloadString,
-      bidderRequest
-    };
+    const hasAdPodBid = find(bidRequests, hasAdPod);
+    if (hasAdPodBid) {
+      bidRequests.filter(hasAdPod).forEach(adPodBid => {
+        const adPodTags = createAdPodRequest(tags, adPodBid);
+        // don't need the original adpod placement because it's in adPodTags
+        const nonPodTags = payload.tags.filter(tag => tag.uuid !== adPodBid.bidId);
+        payload.tags = [...nonPodTags, ...adPodTags];
+      });
+    }
+
+    const request = formatRequest(payload, bidderRequest);
+    return request;
   },
 
   /**
@@ -280,6 +292,35 @@ function deleteValues(keyPairObj) {
   }
 }
 
+function formatRequest(payload, bidderRequest) {
+  let request = [];
+
+  if (payload.tags.length > MAX_IMPS_PER_REQUEST) {
+    const clonedPayload = utils.deepClone(payload);
+
+    utils.chunk(payload.tags, MAX_IMPS_PER_REQUEST).forEach(tags => {
+      clonedPayload.tags = tags;
+      const payloadString = JSON.stringify(clonedPayload);
+      request.push({
+        method: 'POST',
+        url: URL,
+        data: payloadString,
+        bidderRequest
+      });
+    });
+  } else {
+    const payloadString = JSON.stringify(payload);
+    request = {
+      method: 'POST',
+      url: URL,
+      data: payloadString,
+      bidderRequest
+    };
+  }
+
+  return request;
+}
+
 function newRenderer(adUnitCode, rtbBid, rendererOptions = {}) {
   const renderer = Renderer.install({
     id: rtbBid.renderer_id,
@@ -339,6 +380,22 @@ function newBid(serverBid, rtbBid, bidderRequest) {
       vastImpUrl: rtbBid.notify_url,
       ttl: 3600
     });
+
+    const videoContext = utils.deepAccess(bidRequest, 'mediaTypes.video.context');
+    if (videoContext === ADPOD) {
+      bid.meta = {
+        // after translation module/mapping file merged, set iabSubCatId
+        // let key = `${spec.code}_${mappingFileInfo.uniqueKey}`
+        // utils.getIabSubCategory(key, rtbBid.brand_category_id)
+        iabSubCatId: null
+      };
+
+      bid.video = {
+        context: ADPOD,
+        durationSeconds: Math.ceil(rtbBid.rtb.video.duration_ms / 1000),
+      };
+    }
+
     // This supports Outstream Video
     if (rtbBid.renderer_url) {
       const rendererOptions = utils.deepAccess(
@@ -540,6 +597,62 @@ function hasAppId(bid) {
 
 function hasDebug(bid) {
   return !!bid.debug
+}
+
+function hasAdPod(bid) {
+  return (
+    bid.mediaTypes &&
+    bid.mediaTypes.video &&
+    bid.mediaTypes.video.context === ADPOD
+  );
+}
+
+/**
+ * Expand an adpod placement into a set of request objects according to the
+ * total adpod duration and the range of duration seconds. Sets minduration/
+ * maxduration video property according to requireExactDuration configuration
+ */
+function createAdPodRequest(tags, adPodBid) {
+  const { durationRangeSec, requireExactDuration } = adPodBid.mediaTypes.video;
+
+  const numberOfPlacements = getAdPodPlacementNumber(adPodBid.mediaTypes.video);
+  const maxDuration = utils.getMaxValueFromArray(durationRangeSec);
+
+  const tagToDuplicate = tags.filter(tag => tag.uuid === adPodBid.bidId);
+  let request = utils.fill(...tagToDuplicate, numberOfPlacements);
+
+  if (requireExactDuration) {
+    const divider = Math.ceil(numberOfPlacements / durationRangeSec.length);
+    const chunked = utils.chunk(request, divider);
+
+    // each configured duration is set as min/maxduration for a subset of requests
+    durationRangeSec.forEach((duration, index) => {
+      chunked[index].map(tag => {
+        setVideoProperty(tag, 'minduration', duration);
+        setVideoProperty(tag, 'maxduration', duration);
+      });
+    });
+  } else {
+    // all maxdurations should be the same
+    request.map(tag => setVideoProperty(tag, 'maxduration', maxDuration));
+  }
+
+  return request;
+}
+
+function getAdPodPlacementNumber(videoParams) {
+  const { adPodDurationSec, durationRangeSec, requireExactDuration } = videoParams;
+  const minAllowedDuration = utils.getMinValueFromArray(durationRangeSec);
+  const numberOfPlacements = Math.floor(adPodDurationSec / minAllowedDuration);
+
+  return requireExactDuration
+    ? Math.max(numberOfPlacements, durationRangeSec.length)
+    : numberOfPlacements;
+}
+
+function setVideoProperty(tag, key, value) {
+  if (utils.isEmpty(tag.video)) { tag.video = {}; }
+  tag.video[key] = value;
 }
 
 function getRtbBid(tag) {
