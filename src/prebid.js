@@ -125,10 +125,9 @@ const checkAdUnitSetup = hook('sync', function (adUnits) {
   });
   return adUnits;
 }, 'checkAdUnitSetup');
-let test = hooks['checkAdUnitSetup'];
-if (test) {
-  hooks['checkAdUnitSetup'].before(preloadBidderMappingFile);
-}
+
+hooks['checkAdUnitSetup'].before(preloadBidderMappingFile);
+
 /// ///////////////////////////////
 //                              //
 //    Start Public APIs         //
