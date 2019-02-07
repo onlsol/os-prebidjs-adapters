@@ -7,11 +7,11 @@ import { auctionManager } from '../src/auctionManager';
 import { groupBy, deepAccess } from '../src/utils';
 import { config } from '../src/config';
 import { ADPOD } from '../src/mediaTypes';
-// TODO import { initAdpodHooks, TARGETING_KEY_PB_CAT_DUR, TARGETING_KEY_CACHE_ID } from './adpod';
+import { initAdpodHooks, TARGETING_KEY_PB_CAT_DUR, TARGETING_KEY_CACHE_ID } from './adpod';
 
 // TODO Remove these constants later when adpod module is merged; use above commented import instead
-const TARGETING_KEY_PB_CAT_DUR = 'hb_pb_cat_dur';
-const TARGETING_KEY_CACHE_ID = 'hb_cache_id';
+// const TARGETING_KEY_PB_CAT_DUR = 'hb_pb_cat_dur';
+// const TARGETING_KEY_CACHE_ID = 'hb_cache_id';
 
 /**
  * This function returns targeting keyvalue pairs for freewheel adserver module
@@ -106,7 +106,7 @@ function getBidsForAdpod(bidsReceived, adPodAdUnits) {
     .filter((bid) => adUnitCodes.indexOf(bid.adUnitCode) != -1 && (bid.video && bid.video.context === ADPOD))
 }
 
-// initAdpodHooks();
+initAdpodHooks();
 registerVideoSupport('freewheel', {
   getTargeting: getTargeting
 });

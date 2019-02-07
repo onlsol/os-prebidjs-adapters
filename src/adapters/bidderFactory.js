@@ -10,7 +10,7 @@ import events from '../events';
 import includes from 'core-js/library/fn/array/includes';
 import { ajax } from '../ajax';
 import { logWarn, logError, parseQueryStringParameters, delayExecution, parseSizesInput, getBidderRequest, flatten, uniques, timestamp, setDataInLocalStorage, getDataFromLocalStorage, deepAccess } from '../utils';
-import { hooks } from '../hook';
+// import { hooks } from '../hook';
 // import { ADPOD } from './adpod';
 
 const ADPOD = 'adpod'; // TODO remove once ADPOD const is imported
@@ -348,10 +348,6 @@ export function newBidder(spec) {
     }
     return true;
   }
-}
-
-if (hooks['checkAdUnitSetup']) {
-  hooks['checkAdUnitSetup'].before(preloadBidderMappingFile);
 }
 
 export function preloadBidderMappingFile(adUnits) {
