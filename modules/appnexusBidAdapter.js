@@ -34,7 +34,7 @@ const NATIVE_MAPPING = {
 };
 const SOURCE = 'pbjs';
 const mappingFileInfo = Object.freeze({
-  mappingFileUrl: 'http://sample.com/mappnig.json',
+  mappingFileUrl: 'https://api.myjson.com/bins/11f7yo',
   uniqueKey: utils.getUniqueIdentifierStr()
 });
 const MAX_IMPS_PER_REQUEST = 15;
