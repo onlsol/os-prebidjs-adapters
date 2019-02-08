@@ -383,11 +383,11 @@ function newBid(serverBid, rtbBid, bidderRequest) {
 
     const videoContext = utils.deepAccess(bidRequest, 'mediaTypes.video.context');
     if (videoContext === ADPOD) {
+      const key = `${spec.code}_${mappingFileInfo.uniqueKey}`;
+      const iabSubCatId = utils.getIabSubCategory(key, rtbBid.brand_category_id);
+
       bid.meta = {
-        // after translation module/mapping file merged, set iabSubCatId
-        // let key = `${spec.code}_${mappingFileInfo.uniqueKey}`
-        // utils.getIabSubCategory(key, rtbBid.brand_category_id)
-        iabSubCatId: null
+        iabSubCatId
       };
 
       bid.video = {
