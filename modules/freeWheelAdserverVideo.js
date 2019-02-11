@@ -8,10 +8,13 @@ import { groupBy, deepAccess } from '../src/utils';
 import { config } from '../src/config';
 import { ADPOD } from '../src/mediaTypes';
 import { initAdpodHooks, TARGETING_KEY_PB_CAT_DUR, TARGETING_KEY_CACHE_ID } from './adpod';
+import { hooks } from '../src/hook';
 
-// TODO Remove these constants later when adpod module is merged; use above commented import instead
-// const TARGETING_KEY_PB_CAT_DUR = 'hb_pb_cat_dur';
-// const TARGETING_KEY_CACHE_ID = 'hb_cache_id';
+hooks['registerAdserver'].before(notifyTranslationModule);
+
+export function notifyTranslationModule(fn) {
+  fn.call(this, 'freewheel');
+}
 
 /**
  * This function returns targeting keyvalue pairs for freewheel adserver module
