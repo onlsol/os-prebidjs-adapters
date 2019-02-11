@@ -1,7 +1,7 @@
 import { Renderer } from '../src/Renderer';
 import * as utils from '../src/utils';
 import { config } from '../src/config';
-import { registerBidder } from '../src/adapters/bidderFactory';
+import { registerBidder, getIabSubCategory } from '../src/adapters/bidderFactory';
 import { BANNER, NATIVE, VIDEO, ADPOD } from '../src/mediaTypes';
 import find from 'core-js/library/fn/array/find';
 import includes from 'core-js/library/fn/array/includes';
@@ -33,10 +33,7 @@ const NATIVE_MAPPING = {
   displayUrl: 'displayurl'
 };
 const SOURCE = 'pbjs';
-const mappingFileInfo = Object.freeze({
-  mappingFileUrl: 'https://api.myjson.com/bins/11f7yo',
-  uniqueKey: utils.getUniqueIdentifierStr()
-});
+const mappingFileUrl = 'https://api.myjson.com/bins/11f7yo';
 const MAX_IMPS_PER_REQUEST = 15;
 
 export const spec = {
@@ -238,9 +235,8 @@ export const spec = {
    */
   getMappingFileInfo: function() {
     return {
-      url: mappingFileInfo.mappingFileUrl,
-      refreshInDays: 7,
-      localStorageKey: `${spec.code}_${mappingFileInfo.uniqueKey}`
+      url: mappingFileUrl,
+      refreshInDays: 7
     }
   },
 
@@ -383,8 +379,7 @@ function newBid(serverBid, rtbBid, bidderRequest) {
 
     const videoContext = utils.deepAccess(bidRequest, 'mediaTypes.video.context');
     if (videoContext === ADPOD) {
-      const key = `${spec.code}_${mappingFileInfo.uniqueKey}`;
-      const iabSubCatId = utils.getIabSubCategory(key, rtbBid.brand_category_id);
+      const iabSubCatId = getIabSubCategory(bidRequest.bidder, rtbBid.brand_category_id);
 
       bid.meta = {
         iabSubCatId
