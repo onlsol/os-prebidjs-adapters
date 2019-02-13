@@ -17,22 +17,23 @@ import { ajax } from '../src/ajax';
 import { timestamp, logError, setDataInLocalStorage, getDataFromLocalStorage } from '../src/utils';
 
 // TODO udpate url once it is uploaded on cdn
-const DEFAULT_TRANSLATION_FILE_URL = 'https://api.myjson.com/bins/j5d0k';
+const DEFAULT_TRANSLATION_FILE_URL = 'http://acdn.adnxs.com/prebid/test/jp/freewheel-mapping.json';
 const DEFAULT_IAB_TO_FW_MAPPING_KEY = 'iabToFwMappingkey';
 const DEFAULT_IAB_TO_FW_MAPPING_KEY_PUB = 'iabToFwMappingkeyPub';
 const refreshInDays = 1;
 
-let adServerInUse;
 export const registerAdserver = hook('async', function(adServer) {
-  adServerInUse = adServer;
+  let url;
+  if (adServer === 'freewheel') {
+    url = DEFAULT_TRANSLATION_FILE_URL;
+  }
+  initTranslation(url, DEFAULT_IAB_TO_FW_MAPPING_KEY);
 }, 'registerAdserver');
+registerAdserver();
 
 export function getAdserverCategoryHook(fn, adUnitCode, bid) {
   if (!bid) {
     return fn.call(this, adUnitCode); // if no bid, call original and let it display warnings
-  }
-  if (!adServerInUse) {
-    registerAdserver();
   }
 
   let localStorageKey = (config.getConfig('brandCategoryTranslation.translationFile')) ? DEFAULT_IAB_TO_FW_MAPPING_KEY_PUB : DEFAULT_IAB_TO_FW_MAPPING_KEY;
@@ -42,12 +43,11 @@ export function getAdserverCategoryHook(fn, adUnitCode, bid) {
     if (mapping) {
       try {
         mapping = JSON.parse(mapping);
-        mapping = mapping['data'];
       } catch (error) {
         logError('Failed to parse translation mapping file');
       }
       if (bid.meta) {
-        bid.meta.adServerCatId = (bid.meta.iabSubCatId && mapping[adServerInUse] && mapping[adServerInUse]['mapping']) ? mapping[adServerInUse]['mapping'][bid.meta.iabSubCatId] : undefined;
+        bid.meta.adServerCatId = (bid.meta.iabSubCatId && mapping['mapping']) ? mapping['mapping'][bid.meta.iabSubCatId] : undefined;
       }
     } else {
       logError('Translation mapping data not found in local storage');
@@ -56,16 +56,16 @@ export function getAdserverCategoryHook(fn, adUnitCode, bid) {
   fn.call(this, adUnitCode, bid);
 }
 
-export function initTranslation(...args) {
-  hooks['addBidResponse'].before(getAdserverCategoryHook, 50);
-  let url = DEFAULT_TRANSLATION_FILE_URL;
-  let localStorageKey = DEFAULT_IAB_TO_FW_MAPPING_KEY;
-  if (args && args.length > 0) {
-    // use publisher defined translation file
-    url = args[0];
-    localStorageKey = DEFAULT_IAB_TO_FW_MAPPING_KEY_PUB;
+export function initTranslation(url, localStorageKey) {
+  // TODO use function from adpod module
+  function setupHookFnOnce(hookId, hookFn, priority = 15) {
+    let result = hooks[hookId].getHooks({hook: hookFn});
+    if (result.length === 0) {
+      hooks[hookId].before(hookFn, priority);
+    }
   }
 
+  setupHookFnOnce('addBidResponse', getAdserverCategoryHook, 50);
   let mappingData = getDataFromLocalStorage(localStorageKey);
   if (!mappingData || timestamp() < mappingData.lastUpdated + refreshInDays * 24 * 60 * 60 * 1000) {
     ajax(url,
@@ -73,11 +73,8 @@ export function initTranslation(...args) {
         success: (response) => {
           try {
             response = JSON.parse(response);
-            let mapping = {
-              lastUpdated: timestamp(),
-              data: response
-            }
-            setDataInLocalStorage(localStorageKey, JSON.stringify(mapping));
+            response['lastUpdated'] = timestamp();
+            setDataInLocalStorage(localStorageKey, JSON.stringify(response));
           } catch (error) {
             logError('Failed to parse translation mapping file');
           }
@@ -93,9 +90,8 @@ export function initTranslation(...args) {
 function setConfig(config) {
   if (config.translationFile) {
     // if publisher has defined the translation file, preload that file here
-    initTranslation(config.translationFile);
+    initTranslation(config.translationFile, DEFAULT_IAB_TO_FW_MAPPING_KEY_PUB);
   }
 }
 
-initTranslation();
 config.getConfig('brandCategoryTranslation', config => setConfig(config.brandCategoryTranslation));

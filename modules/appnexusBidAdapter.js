@@ -1,7 +1,7 @@
 import { Renderer } from '../src/Renderer';
 import * as utils from '../src/utils';
 import { config } from '../src/config';
-import {registerBidder, /* getIabSubCategory */} from '../src/adapters/bidderFactory';
+import { registerBidder, getIabSubCategory } from '../src/adapters/bidderFactory';
 import { BANNER, NATIVE, VIDEO, ADPOD } from '../src/mediaTypes';
 import find from 'core-js/library/fn/array/find';
 import includes from 'core-js/library/fn/array/includes';
@@ -33,8 +33,8 @@ const NATIVE_MAPPING = {
   displayUrl: 'displayurl'
 };
 const SOURCE = 'pbjs';
-const mappingFileUrl = 'https://api.myjson.com/bins/11f7yo';
 const MAX_IMPS_PER_REQUEST = 15;
+const mappingFileUrl = 'http://acdn.adnxs.com/prebid/test/jp/appnexus-mapping.json';
 
 export const spec = {
   code: BIDDER_CODE,
@@ -379,10 +379,9 @@ function newBid(serverBid, rtbBid, bidderRequest) {
 
     const videoContext = utils.deepAccess(bidRequest, 'mediaTypes.video.context');
     if (videoContext === ADPOD) {
-      // TODO: uncomment and add to bid.meta after util function merged
-      // const iabSubCatId = getIabSubCategory(bidRequest.bidder, rtbBid.brand_category_id);
+      const iabSubCatId = getIabSubCategory(bidRequest.bidder, rtbBid.brand_category_id);
       bid.meta = {
-        iabSubCatId: null,
+        iabSubCatId
       };
 
       bid.video = {
