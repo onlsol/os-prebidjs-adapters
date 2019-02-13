@@ -381,7 +381,6 @@ function newBid(serverBid, rtbBid, bidderRequest) {
     if (videoContext === ADPOD) {
       // TODO: uncomment and add to bid.meta after util function merged
       // const iabSubCatId = getIabSubCategory(bidRequest.bidder, rtbBid.brand_category_id);
-
       bid.meta = {
         iabSubCatId: null,
       };
