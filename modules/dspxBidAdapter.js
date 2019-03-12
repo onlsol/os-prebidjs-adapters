@@ -22,17 +22,33 @@ export const spec = {
       const rnd = Math.floor(Math.random() * 99999999999);
       const referrer = encodeURIComponent(bidderRequest.refererInfo.referer);
       const bidId = bidRequest.bidId;
-      const payload = {
-        _f: 'html',
-        alternative: 'prebid_js',
-        inventory_item_id: placementId,
-        srw: width,
-        srh: height,
-        idt: 100,
-        rnd: rnd,
-        ref: referrer,
-        bid_id: bidId,
-      };
+
+      if (isVideoRequest(bidRequest)){
+          const payload = {
+              _f: 'vast2',
+              alternative: 'prebid_js',
+              inventory_item_id: placementId,
+              srw: width,
+              srh: height,
+              idt: 100,
+              rnd: rnd,
+              ref: referrer,
+              bid_id: bidId,
+          };
+      } else {
+          const payload = {
+              _f: 'html',
+              alternative: 'prebid_js',
+              inventory_item_id: placementId,
+              srw: width,
+              srh: height,
+              idt: 100,
+              rnd: rnd,
+              ref: referrer,
+              bid_id: bidId,
+          };
+      }
+
       if (params.pfilter !== undefined) {
         payload.pfilter = params.pfilter;
       }
@@ -92,5 +108,16 @@ function objectToQueryString(obj, prefix) {
   }
   return str.join('&');
 }
+
+/**
+ * Check if it's a video bid request
+ *
+ * @param {BidRequest} bid - Bid request generated from ad slots
+ * @returns {boolean} True if it's a video bid
+ */
+function isVideoRequest(bid) {
+    return bid.mediaType === 'video' || !!utils.deepAccess(bid, 'mediaTypes.video');
+}
+
 
 registerBidder(spec);
