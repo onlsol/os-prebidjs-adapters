@@ -3,7 +3,10 @@ import {config} from '../src/config';
 import {registerBidder} from '../src/adapters/bidderFactory';
 
 const BIDDER_CODE = 'dspx';
-const ENDPOINT_URL = 'https://buyer.dspx.tv/request/';
+const BUYER_ENDPOINT_URL = 'https://buyer.dspx.tv/request/';
+const VADS_ENDPOINT_URL = 'https://ads.smartstream.tv/r/';
+const DEFAULT_VIDEO_SOURCE = 'buyer';
+
 
 export const spec = {
   code: BIDDER_CODE,
@@ -17,24 +20,34 @@ export const spec = {
       const sizes = utils.parseSizesInput(bidRequest.sizes)[0];
       const width = sizes.split('x')[0];
       const height = sizes.split('x')[1];
+
+      //const format = convertSizes(videoData.playerSize || bid.sizes);
+
       const placementId = params.placement;
 
       const rnd = Math.floor(Math.random() * 99999999999);
       const referrer = encodeURIComponent(bidderRequest.refererInfo.referer);
       const bidId = bidRequest.bidId;
+      let endpoint = BUYER_ENDPOINT_URL;
 
       if (isVideoRequest(bidRequest)){
-          const payload = {
-              _f: 'vast2',
-              alternative: 'prebid_js',
-              inventory_item_id: placementId,
-              srw: width,
-              srh: height,
-              idt: 100,
-              rnd: rnd,
-              ref: referrer,
-              bid_id: bidId,
-          };
+          const source = params.source || DEFAULT_VIDEO_SOURCE;
+          if (source === 'buyer') {
+              const payload = {
+                  _f: 'vast2',
+                  alternative: 'prebid_js',
+                  inventory_item_id: placementId,
+                  srw: width,
+                  srh: height,
+                  idt: 100,
+                  rnd: rnd,
+                  ref: referrer,
+                  bid_id: bidId,
+              };
+              prepareExtraParams(params, payload);
+          } else if (source === 'vads'){
+              endpoint = VADS_ENDPOINT_URL;
+          }
       } else {
           const payload = {
               _f: 'html',
@@ -47,20 +60,13 @@ export const spec = {
               ref: referrer,
               bid_id: bidId,
           };
+          prepareExtraParams(params, payload);
       }
 
-      if (params.pfilter !== undefined) {
-        payload.pfilter = params.pfilter;
-      }
-      if (params.bcat !== undefined) {
-        payload.bcat = params.bcat;
-      }
-      if (params.dvt !== undefined) {
-        payload.dvt = params.dvt;
-      }
+
       return {
         method: 'GET',
-        url: ENDPOINT_URL,
+        url: endpoint,
         data: objectToQueryString(payload),
       }
     });
@@ -117,6 +123,19 @@ function objectToQueryString(obj, prefix) {
  */
 function isVideoRequest(bid) {
     return bid.mediaType === 'video' || !!utils.deepAccess(bid, 'mediaTypes.video');
+}
+
+
+function prepareExtraParams(params, payload){
+    if (params.pfilter !== undefined) {
+        payload.pfilter = params.pfilter;
+    }
+    if (params.bcat !== undefined) {
+        payload.bcat = params.bcat;
+    }
+    if (params.dvt !== undefined) {
+        payload.dvt = params.dvt;
+    }
 }
 
 

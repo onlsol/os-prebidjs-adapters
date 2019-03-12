@@ -14,6 +14,7 @@ Dspx adapter for Prebid.js 1.0
 ```
     var adUnits = [
         {
+            // extended banner settings
             code: 'test-div',
             mediaTypes: {
                 banner: {
@@ -52,7 +53,8 @@ Dspx adapter for Prebid.js 1.0
                 }
             ]
         },{
-            code: 'test-div',
+            // Simple banner settings 
+            code: 'simple-test-div',
             mediaTypes: {
                 banner: {
                     sizes: [[320, 50]],   // a mobile size
@@ -66,7 +68,27 @@ Dspx adapter for Prebid.js 1.0
                     }
                 }
             ]
+        },{
+            // Video banner settings
+            code: 'video-test-div',
+            mediaTypes: {
+                video: {
+                    context: 'instream',
+                    playerSize: [640, 480]
+                }
+            },
+            bids: [
+                {
+                    bidder: "dspx",
+                    params: {
+                        placement: 101,
+                        source: "buyer" // buyer(default) or vads
+                    }
+                 }
+            ]
         }
+        
+        
     ];
 ```
 
