@@ -84,7 +84,7 @@ describe('dspxAdapter', function () {
         'crid': 100500,
         'width': '300',
         'height': '250',
-        'tag': '<!-- test creative -->',
+        'adTag': '<!-- test creative -->',
         'requestId': '220ed41385952a',
         'currency': 'EUR',
         'ttl': 60,

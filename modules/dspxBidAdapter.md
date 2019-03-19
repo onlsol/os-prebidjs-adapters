@@ -29,6 +29,7 @@ Dspx adapter for Prebid.js 1.0
                     bidder: "dspx",
                     params: {
                         placement: '101',
+                        format: 'html', // the response in js or html(default) format (only for banners) 
                         pfilter: {
                             floorprice: 1000000, // EUR * 1,000,000
                             private_auction: 1, // Is private auction?  0  - no, 1 - yes
