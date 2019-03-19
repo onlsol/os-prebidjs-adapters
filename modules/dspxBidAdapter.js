@@ -81,7 +81,7 @@ export const spec = {
       const dealId = response.dealid || '';
       const currency = response.currency || 'EUR';
       const netRevenue = (response.netRevenue === undefined) ? true : response.netRevenue;
-      const referrer = encodeURIComponent(bidderRequest.refererInfo.referer);
+      const referrer = encodeURIComponent(bidRequest.refererInfo.referer);
       const bidResponse = {
         requestId: response.bid_id,
         cpm: cpm,

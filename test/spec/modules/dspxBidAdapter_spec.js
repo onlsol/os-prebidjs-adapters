@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import { spec } from 'modules/dspxBidAdapter';
 import { newBidder } from 'src/adapters/bidderFactory';
+chai.config.showDiff = true;
 
 const ENDPOINT_URL = 'https://buyer.dspx.tv/request/';
 
@@ -111,6 +112,9 @@ describe('dspxAdapter', function () {
       let bidRequest = [{
         'method': 'GET',
         'url': ENDPOINT_URL,
+        'refererInfo': {
+          'referer': ''
+        },
         'data': {
           'bid_id': '30b31c1838de1e'
         }
