@@ -1,6 +1,7 @@
 import * as utils from '../src/utils';
 import {config} from '../src/config';
 import {registerBidder} from '../src/adapters/bidderFactory';
+import { BANNER, NATIVE, VIDEO, ADPOD } from '../src/mediaTypes';
 
 const BIDDER_CODE = 'dspx';
 const BUYER_ENDPOINT_URL = 'https://buyer.dspx.tv/request/';
@@ -11,6 +12,7 @@ const DEFAULT_BANNER_FORMAT = 'html';
 export const spec = {
   code: BIDDER_CODE,
   aliases: ['dspx'],
+  supportedMediaTypes: [BANNER, VIDEO],
   isBidRequestValid: function(bid) {
     return !!(bid.params.placement);
   },
@@ -47,8 +49,18 @@ export const spec = {
             ref: referrer,
             bid_id: bidId,
           };
-          prepareExtraParams(params, payload);
         } else if (source === 'vads') {
+          payload = {
+                _f: 'vast2',
+                alternative: 'prebid_js',
+                _ps: encodeURIComponent(placementId),
+                srw: width,
+                srh: height,
+                idt: 100,
+                rnd: rnd,
+                ref: referrer,
+                bid_id: bidId,
+          };
           endpoint = VADS_ENDPOINT_URL;
         }
       } else {
@@ -64,8 +76,8 @@ export const spec = {
           ref: referrer,
           bid_id: bidId,
         };
-        prepareExtraParams(params, payload);
       }
+      prepareExtraParams(params, payload);
 
       return {
         method: 'GET',
@@ -83,7 +95,6 @@ export const spec = {
       const dealId = response.dealid || '';
       const currency = response.currency || 'EUR';
       const netRevenue = (response.netRevenue === undefined) ? true : response.netRevenue;
-      const referrer = encodeURIComponent(bidRequest.refererInfo.referer);
       const bidResponse = {
         requestId: response.bid_id,
         cpm: cpm,
@@ -93,11 +104,10 @@ export const spec = {
         dealId: dealId,
         currency: currency,
         netRevenue: netRevenue,
-        ttl: config.getConfig('_bidderTimeout'),
-        referrer: referrer,
+        ttl: config.getConfig('_bidderTimeout')
       };
 
-      if (isVideoRequest(bidRequest)) {
+      if (response.vastXml) {
         bidResponse.vastXml = response.vastXml;
         bidResponse.mediaType = 'video';
       } else {
@@ -142,6 +152,10 @@ function prepareExtraParams(params, payload) {
   if (params.bcat !== undefined) {
     payload.bcat = params.bcat;
   }
+  if (params.noskip !== undefined) {
+    payload.noskip= params.noskip;
+  }
+
   if (params.dvt !== undefined) {
     payload.dvt = params.dvt;
   }

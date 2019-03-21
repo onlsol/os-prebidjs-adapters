@@ -83,7 +83,16 @@ Dspx adapter for Prebid.js 1.0
                     bidder: "dspx",
                     params: {
                         placement: 101,
-                        source: "buyer" // buyer(default) or vads
+                        source: "buyer", // buyer(default) or vads
+                        noskip: 1, // for vads source only 
+                        pfilter: {
+                            // here may be common filter params if source=buyer 
+                            // filter params for vads source only 
+                            min_duration: 10, // Min duration
+                            max_duration: 30, // Max duration
+                            min_bitrate:  32, // Min bitrate
+                            max_bitrate:  64, // Max bitrate
+                        }
                     }
                  }
             ]
