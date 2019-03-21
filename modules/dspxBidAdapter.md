@@ -84,7 +84,7 @@ Dspx adapter for Prebid.js 1.0
                     params: {
                         placement: 101,
                         source: "buyer", // buyer(default) or vads
-                        noskip: 1, // for vads source only 
+                        noskip: 1, // 0 or 1 -  for vads source only 
                         pfilter: {
                             // here may be common filter params if source=buyer 
                             // filter params for vads source only 
