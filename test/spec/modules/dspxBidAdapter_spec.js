@@ -85,6 +85,28 @@ describe('dspxAdapter', function () {
       'bidId': '30b31c1838de1e',
       'bidderRequestId': '22edbae2733bf6',
       'auctionId': '1d1a030790a475'
+    }, {
+      'bidder': 'dspx',
+      'params': {
+        'source': 'vads',
+        'placement': 'pre-roll0-0=1',
+        'pfilter': {
+          'min_duration': 1,
+          'max_duration': 100,
+          'min_bitrate': 32,
+          'max_bitrate': 128,
+        },
+        'noskip': 1
+      },
+      'mediaTypes': {
+        'video': {
+          'playerSize': [640, 480],
+          'context': 'instream'
+        }
+      },
+      'bidId': '30b31c1838de1e',
+      'bidderRequestId': '22edbae2733bf6',
+      'auctionId': '1d1a030790a475'
     }];
 
     let bidderRequest = {
@@ -106,11 +128,11 @@ describe('dspxAdapter', function () {
       expect(data).to.equal('_f=vast2&alternative=prebid_js&inventory_item_id=6682&srw=640&srh=480&idt=100&bid_id=30b31c1838de1e&pfilter%5Bfloorprice%5D=1000000&pfilter%5Bprivate_auction%5D=0&pfilter%5Bgeo%5D%5Bcountry%5D=DE&bcat=IAB2%2CIAB4&dvt=desktop');
     });
 
-    /* it('sends bid video request to our vads endpoint via GET', function () {
-        expect(request[0].method).to.equal('GET');
-        let data = request[0].data.replace(/rnd=\d+\&/g, '').replace(/ref=.*\&bid/g, 'bid');
-        //expect(data).to.equal('_f=html&alternative=prebid_js&inventory_item_id=6682&srw=300&srh=250&idt=100&bid_id=30b31c1838de1e&pfilter%5Bfloorprice%5D=1000000&pfilter%5Bprivate_auction%5D=0&pfilter%5Bgeo%5D%5Bcountry%5D=DE&bcat=IAB2%2CIAB4&dvt=desktop');
-    }); */
+    it('sends bid video request to our vads endpoint via GET', function () {
+      expect(request[2].method).to.equal('GET');
+      let data = request[2].data.replace(/rnd=\d+\&/g, '').replace(/ref=.*\&bid/g, 'bid');
+      expect(data).to.equal('_f=vast2&alternative=prebid_js&_ps=pre-roll0-0%253D1&srw=640&srh=480&idt=100&bid_id=30b31c1838de1e&pfilter%5Bmin_duration%5D=1&pfilter%5Bmax_duration%5D=100&pfilter%5Bmin_bitrate%5D=32&pfilter%5Bmax_bitrate%5D=128&noskip=1');
+    });
   });
 
   describe('interpretResponse', function () {
@@ -142,6 +164,20 @@ describe('dspxAdapter', function () {
         'zone': '6682'
       }
     };
+    let vadsServerVideoResponse = {
+      'body': {
+        'cpm': 5000000,
+        'crid': 100500,
+        'width': '300',
+        'height': '250',
+        'vastXml': '{"reason":7001,"status":"accepted"}',
+        'requestId': '220ed41385952a',
+        'currency': 'EUR',
+        'ttl': 60,
+        'netRevenue': true,
+        'zone': '6682'
+      }
+    };
 
     let expectedResponse = [{
       requestId: '23beaa6af6cdde',
@@ -153,7 +189,6 @@ describe('dspxAdapter', function () {
       currency: 'EUR',
       netRevenue: true,
       ttl: 300,
-      referrer: '',
       ad: '<!-- test creative -->'
     }, {
       requestId: '23beaa6af6cdde',
@@ -165,7 +200,18 @@ describe('dspxAdapter', function () {
       currency: 'EUR',
       netRevenue: true,
       ttl: 300,
-      referrer: '',
+      vastXml: '{"reason":7001,"status":"accepted"}',
+      mediaType: 'video'
+    }, {
+      requestId: '23beaa6af6cdde',
+      cpm: 0.5,
+      width: 0,
+      height: 0,
+      creativeId: 100500,
+      dealId: '',
+      currency: 'EUR',
+      netRevenue: true,
+      ttl: 300,
       vastXml: '{"reason":7001,"status":"accepted"}',
       mediaType: 'video'
     }];
@@ -189,9 +235,6 @@ describe('dspxAdapter', function () {
       let bidRequest = [{
         'method': 'GET',
         'url': BUYER_ENDPOINT_URL,
-        'refererInfo': {
-          'referer': ''
-        },
         'mediaTypes': {
           'video': {
             'playerSize': [640, 480],
@@ -207,7 +250,21 @@ describe('dspxAdapter', function () {
     });
 
     it('should get the correct vads video bid response by display ad', function () {
-
+      let bidRequest = [{
+        'method': 'GET',
+        'url': VADS_ENDPOINT_URL,
+        'mediaTypes': {
+          'video': {
+            'playerSize': [640, 480],
+            'context': 'instream'
+          }
+        },
+        'data': {
+          'bid_id': '30b31c1838de1e'
+        }
+      }];
+      let result = spec.interpretResponse(vadsServerVideoResponse, bidRequest[0]);
+      expect(Object.keys(result[0])).to.have.members(Object.keys(expectedResponse[2]));
     });
 
     it('handles empty bid response', function () {

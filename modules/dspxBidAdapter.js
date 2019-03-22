@@ -1,10 +1,11 @@
 import * as utils from '../src/utils';
 import {config} from '../src/config';
 import {registerBidder} from '../src/adapters/bidderFactory';
-import { BANNER, NATIVE, VIDEO, ADPOD } from '../src/mediaTypes';
+import { BANNER, VIDEO } from '../src/mediaTypes';
 
 const BIDDER_CODE = 'dspx';
 const BUYER_ENDPOINT_URL = 'https://buyer.dspx.tv/request/';
+const BUYER_ENDPOINT_URL_DEV = 'https://dcbuyer1.dspx.tv/request/';
 const VADS_ENDPOINT_URL = 'https://ads.smartstream.tv/r/';
 const DEFAULT_VIDEO_SOURCE = 'buyer';
 const DEFAULT_BANNER_FORMAT = 'html';
@@ -29,12 +30,17 @@ export const spec = {
 
       const placementId = params.placement;
 
+      const isDev = params.devMode || false;
+
       const rnd = Math.floor(Math.random() * 99999999999);
       const referrer = encodeURIComponent(bidderRequest.refererInfo.referer);
       const bidId = bidRequest.bidId;
       let endpoint = BUYER_ENDPOINT_URL;
-      let payload = {};
+      if (isDev) {
+        endpoint = BUYER_ENDPOINT_URL_DEV;
+      }
 
+      let payload = {};
       if (isVideoRequest(bidRequest)) {
         const source = params.source || DEFAULT_VIDEO_SOURCE;
         if (source === 'buyer') {
@@ -51,15 +57,15 @@ export const spec = {
           };
         } else if (source === 'vads') {
           payload = {
-                _f: 'vast2',
-                alternative: 'prebid_js',
-                _ps: encodeURIComponent(placementId),
-                srw: width,
-                srh: height,
-                idt: 100,
-                rnd: rnd,
-                ref: referrer,
-                bid_id: bidId,
+            _f: 'vast2',
+            alternative: 'prebid_js',
+            _ps: encodeURIComponent(placementId),
+            srw: width,
+            srh: height,
+            idt: 100,
+            rnd: rnd,
+            ref: referrer,
+            bid_id: bidId,
           };
           endpoint = VADS_ENDPOINT_URL;
         }
@@ -153,7 +159,7 @@ function prepareExtraParams(params, payload) {
     payload.bcat = params.bcat;
   }
   if (params.noskip !== undefined) {
-    payload.noskip= params.noskip;
+    payload.noskip = params.noskip;
   }
 
   if (params.dvt !== undefined) {
