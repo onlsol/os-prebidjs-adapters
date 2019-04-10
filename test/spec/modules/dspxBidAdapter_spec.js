@@ -89,7 +89,7 @@ describe('dspxAdapter', function () {
       'bidder': 'dspx',
       'params': {
         'source': 'vads',
-        'placement': 'pre-roll0-0=1',
+        'placement': 'prer0-0%3D4137',
         'pfilter': {
           'min_duration': 1,
           'max_duration': 100,
@@ -131,7 +131,7 @@ describe('dspxAdapter', function () {
     it('sends bid video request to our vads endpoint via GET', function () {
       expect(request[2].method).to.equal('GET');
       let data = request[2].data.replace(/rnd=\d+\&/g, '').replace(/ref=.*\&bid/g, 'bid');
-      expect(data).to.equal('_f=vast2&alternative=prebid_js&_ps=pre-roll0-0%253D1&srw=640&srh=480&idt=100&bid_id=30b31c1838de1e&pfilter%5Bmin_duration%5D=1&pfilter%5Bmax_duration%5D=100&pfilter%5Bmin_bitrate%5D=32&pfilter%5Bmax_bitrate%5D=128&noskip=1');
+      expect(data).to.equal('_f=vast2&alternative=prebid_js&_ps=prer0-0%3D4137&srw=640&srh=480&idt=100&bid_id=30b31c1838de1e&pfilter%5Bmin_duration%5D=1&pfilter%5Bmax_duration%5D=100&pfilter%5Bmin_bitrate%5D=32&pfilter%5Bmax_bitrate%5D=128&noskip=1');
     });
   });
 

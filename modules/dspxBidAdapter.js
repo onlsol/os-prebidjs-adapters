@@ -59,7 +59,7 @@ export const spec = {
           payload = {
             _f: 'vast2',
             alternative: 'prebid_js',
-            _ps: encodeURIComponent(placementId),
+            _ps: placementId,
             srw: width,
             srh: height,
             idt: 100,
@@ -135,7 +135,7 @@ function objectToQueryString(obj, prefix) {
       let v = obj[p];
       str.push((v !== null && typeof v === 'object')
         ? objectToQueryString(v, k)
-        : encodeURIComponent(k) + '=' + encodeURIComponent(v));
+        : encodeURIComponent(k) + '=' + (k == '_ps' ? v : encodeURIComponent(v)));
     }
   }
   return str.join('&');
