@@ -18,11 +18,7 @@ export const spec = {
   buildRequests: function(validBidRequests, bidderRequest) {
     return validBidRequests.map(bidRequest => {
       const params = bidRequest.params;
-      const videoData = utils.deepAccess(bidRequest, 'mediaTypes.video') || {};
-      const sizes = utils.parseSizesInput(videoData.playerSize || bidRequest.sizes)[0];
-      const [width, height] = sizes.split('x');
       const placementId = params.placement;
-
       const rnd = Math.floor(Math.random() * 99999999999);
       const referrer = encodeURIComponent(bidderRequest.refererInfo.referer);
       const bidId = bidRequest.bidId;
@@ -32,6 +28,8 @@ export const spec = {
 
       let payload = {};
       if (isVideoRequest(bidRequest)) {
+        let videoData = utils.deepAccess(bidRequest, 'mediaTypes.video') || {};
+        let [width, height] = utils.parseSizesInput(videoData.playerSize || bidRequest.sizes)[0].split('x');
         let vastFormat = params.vastFormat || DEFAULT_VAST_FORMAT;
         payload = {
           rt: vastFormat,
@@ -45,6 +43,8 @@ export const spec = {
           bid_id: bidId,
         };
       } else {
+        let privateSizePresent = (typeof (bidRequest.mediaTypes) !== 'undefined' && typeof (bidRequest.mediaTypes.banner) !== 'undefined' && typeof (bidRequest.mediaTypes.banner.sizes) !== 'undefined');
+        let [width, height] = utils.parseSizesInput(privateSizePresent ? bidRequest.mediaTypes.banner.sizes : bidRequest.sizes)[0].split('x');
         payload = {
           rt: 'bid-response',
           _f: 'prebid_js',
@@ -122,7 +122,7 @@ function objectToQueryString(obj, prefix) {
  * @returns {boolean} True if it's a video bid
  */
 function isVideoRequest(bid) {
-  return bid.mediaType === 'video' || !!utils.deepAccess(bid, 'mediaTypes.video');
+  return (utils.deepAccess(bid, 'mediaTypes.video') && !utils.deepAccess(bid, 'mediaTypes.banner')) || bid.mediaType === VIDEO;
 }
 
 function prepareExtraParams(params, payload) {
