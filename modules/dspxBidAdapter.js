@@ -4,6 +4,7 @@ import {registerBidder} from '../src/adapters/bidderFactory';
 
 const BIDDER_CODE = 'dspx';
 const ENDPOINT_URL = 'https://buyer.dspx.tv/request/';
+const ENDPOINT_URL_DEV = 'https://dcbuyer.dspx.tv/request/';
 
 export const spec = {
   code: BIDDER_CODE,
@@ -20,8 +21,12 @@ export const spec = {
       const placementId = params.placement;
 
       const rnd = Math.floor(Math.random() * 99999999999);
-      const referrer = bidderRequest.refererInfo.referer;
+      const referrer = encodeURIComponent(bidderRequest.refererInfo.referer);
       const bidId = bidRequest.bidId;
+
+      const isDev = params.devMode || false;
+      let endpoint = isDev ? ENDPOINT_URL_DEV : ENDPOINT_URL;
+
       const payload = {
         _f: 'html',
         alternative: 'prebid_js',
@@ -44,7 +49,7 @@ export const spec = {
       }
       return {
         method: 'GET',
-        url: ENDPOINT_URL,
+        url: endpoint,
         data: objectToQueryString(payload),
       }
     });
