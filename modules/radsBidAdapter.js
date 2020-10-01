@@ -57,7 +57,7 @@ export const spec = {
           bid_id: bidId,
         };
       }
-      prepareExtraParams(params, payload);
+      prepareExtraParams(params, payload, bidderRequest);
 
       return {
         method: 'GET',
@@ -125,10 +125,25 @@ function isVideoRequest(bid) {
   return bid.mediaType === 'video' || !!utils.deepAccess(bid, 'mediaTypes.video');
 }
 
-function prepareExtraParams(params, payload) {
+function prepareExtraParams(params, payload, bidderRequest) {
   if (params.pfilter !== undefined) {
     payload.pfilter = params.pfilter;
   }
+
+  if (bidderRequest && bidderRequest.gdprConsent) {
+    if (payload.pfilter !== undefined) {
+      if (!payload.pfilter.gdpr_consent) {
+        payload.pfilter.gdpr_consent = bidderRequest.gdprConsent.consentString;
+        payload.pfilter.gdpr = bidderRequest.gdprConsent.gdprApplies;
+      }
+    } else {
+      payload.pfilter = {
+        'gdpr_consent': bidderRequest.gdprConsent.consentString,
+        'gdpr': bidderRequest.gdprConsent.gdprApplies
+      };
+    }
+  }
+
   if (params.bcat !== undefined) {
     payload.bcat = params.bcat;
   }
