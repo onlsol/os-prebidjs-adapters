@@ -105,7 +105,7 @@ describe('radsAdapter', function () {
       }
     };
 
-    //without gdprConsent
+    // without gdprConsent
     const request = spec.buildRequests(bidRequests, bidderRequest);
     it('sends bid request to our endpoint via GET', function () {
       expect(request[0].method).to.equal('GET');
@@ -119,18 +119,18 @@ describe('radsAdapter', function () {
       expect(data).to.equal('rt=vast2&_f=prebid_js&_ps=6682&srw=640&srh=480&idt=100&p=some_referrer.net&bid_id=30b31c1838de1e&pfilter%5Bfloorprice%5D=1000000&pfilter%5Bgeo%5D%5Bcountry%5D=DE&pfilter%5Bgeo%5D%5Bregion%5D=DE-BE&bcat=IAB2%2CIAB4&dvt=desktop');
     });
 
-    //with gdprConsent
+    // with gdprConsent
     const request2 = spec.buildRequests(bidRequests, bidderRequestGdprConsent);
     it('sends bid request to our endpoint via GET', function () {
       expect(request2[0].method).to.equal('GET');
       let data = request2[0].data.replace(/rnd=\d+\&/g, '').replace(/ref=.*\&bid/g, 'bid');
-      expect(data).to.equal('rt=bid-response&_f=prebid_js&_ps=6682&srw=300&srh=250&idt=100&p=some_referrer.net&bid_id=30b31c1838de1e&pfilter%5Bfloorprice%5D=1000000&pfilter%5Bgeo%5D%5Bcountry%5D=DE&bcat=IAB2%2CIAB4&pfilter%5Bgdpr_consent%5D=BOJ%2FP2HOJ%2FP2HABABMAAAAAZ%2BA%3D%3D&pfilter%5Bgdpr%5D=true&dvt=desktop&i=1.1.1.1');
+      expect(data).to.equal('rt=bid-response&_f=prebid_js&_ps=6682&srw=300&srh=250&idt=100&p=some_referrer.net&bid_id=30b31c1838de1e&pfilter%5Bfloorprice%5D=1000000&pfilter%5Bgeo%5D%5Bcountry%5D=DE&pfilter%5Bgdpr_consent%5D=BOJ%2FP2HOJ%2FP2HABABMAAAAAZ%2BA%3D%3D&pfilter%5Bgdpr%5D=true&bcat=IAB2%2CIAB4&dvt=desktop&i=1.1.1.1');
     });
 
     it('sends bid video request to our rads endpoint via GET', function () {
       expect(request2[1].method).to.equal('GET');
       let data = request2[1].data.replace(/rnd=\d+\&/g, '').replace(/ref=.*\&bid/g, 'bid');
-      expect(data).to.equal('rt=vast2&_f=prebid_js&_ps=6682&srw=640&srh=480&idt=100&p=some_referrer.net&bid_id=30b31c1838de1e&pfilter%5Bfloorprice%5D=1000000&pfilter%5Bgeo%5D%5Bcountry%5D=DE&pfilter%5Bgeo%5D%5Bregion%5D=DE-BE&bcat=IAB2%2CIAB4&pfilter%5Bgdpr_consent%5D=BOJ%2FP2HOJ%2FP2HABABMAAAAAZ%2BA%3D%3D&pfilter%5Bgdpr%5D=true&dvt=desktop');
+      expect(data).to.equal('rt=vast2&_f=prebid_js&_ps=6682&srw=640&srh=480&idt=100&p=some_referrer.net&bid_id=30b31c1838de1e&pfilter%5Bfloorprice%5D=1000000&pfilter%5Bgeo%5D%5Bcountry%5D=DE&pfilter%5Bgeo%5D%5Bregion%5D=DE-BE&pfilter%5Bgdpr_consent%5D=BOJ%2FP2HOJ%2FP2HABABMAAAAAZ%2BA%3D%3D&pfilter%5Bgdpr%5D=true&bcat=IAB2%2CIAB4&dvt=desktop');
     });
   });
 
