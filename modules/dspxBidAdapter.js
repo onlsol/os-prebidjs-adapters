@@ -47,10 +47,6 @@ export const spec = {
         pbver: '$prebid.version$'
       };
 
-      if (mediaTypesInfo[VIDEO] !== undefined && params.vastFormat !== undefined) {
-        payload.vf = params.vastFormat;
-      }
-
       if (params.pfilter !== undefined) {
         payload.pfilter = params.pfilter;
       }
@@ -94,6 +90,12 @@ export const spec = {
       }
 
       payload.media_types = convertMediaInfoForRequest(mediaTypesInfo);
+      if (mediaTypesInfo[VIDEO] !== undefined) {
+        payload.videoContext = getVideoContext(bidRequest);
+        if (params.vastFormat !== undefined) {
+          payload.vf = params.vastFormat;
+        }
+      }
 
       return {
         method: 'GET',
@@ -126,11 +128,29 @@ export const spec = {
           advertiserDomains: response.adomain || []
         }
       };
+
+      if (response.vastUrl) {
+        bidResponse.vastUrl = response.vastUrl;
+        bidResponse.mediaType = 'video';
+      }
+
       if (response.vastXml) {
         bidResponse.vastXml = response.vastXml;
         bidResponse.mediaType = 'video';
-      } else {
+      }
+
+      if (response.videoCacheKey) {
+        bidResponse.videoCacheKey = response.videoCacheKey;
+      }
+
+      if (response.adTag) {
         bidResponse.ad = response.adTag;
+      }
+
+      if (response.bid_appendix) {
+        Object.keys(response.bid_appendix).forEach(fieldName => {
+          bidResponse[fieldName] = response.bid_appendix[fieldName];
+        });
       }
 
       bidResponses.push(bidResponse);
@@ -217,10 +237,20 @@ function isVideoRequest(bid) {
  * Get video sizes
  *
  * @param {BidRequest} bid - Bid request generated from ad slots
- * @returns {object} True if it's a video bid
+ * @returns {object}
  */
 function getVideoSizes(bid) {
   return parseSizes(deepAccess(bid, 'mediaTypes.video.playerSize') || bid.sizes);
+}
+
+/**
+ * Get video context
+ *
+ * @param {BidRequest} bid - Bid request generated from ad slots
+ * @returns {object}
+ */
+function getVideoContext(bid) {
+  return deepAccess(bid, 'mediaTypes.video.context') || 'unknown';
 }
 
 /**
