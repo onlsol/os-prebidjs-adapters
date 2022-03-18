@@ -233,7 +233,8 @@ describe('dspxAdapter', function () {
         'currency': 'EUR',
         'ttl': 60,
         'netRevenue': true,
-        'zone': '6682'
+        'zone': '6682',
+        'renderer': {id: 1, url: '//player.example.com', options: {}}
       }
     };
     let serverVideoResponseVastUrl = {
@@ -266,7 +267,7 @@ describe('dspxAdapter', function () {
       ttl: 60,
       type: 'sspHTML',
       ad: '<!-- test creative -->',
-      meta: {advertiserDomains: ['bdomain']}
+      meta: {advertiserDomains: ['bdomain']},
     }, {
       requestId: '23beaa6af6cdde',
       cpm: 0.5,
@@ -280,7 +281,8 @@ describe('dspxAdapter', function () {
       type: 'vast2',
       vastXml: '{"reason":7001,"status":"accepted"}',
       mediaType: 'video',
-      meta: {advertiserDomains: []}
+      meta: {advertiserDomains: []},
+      renderer: {}
     }, {
       requestId: '23beaa6af6cdde',
       cpm: 0.5,

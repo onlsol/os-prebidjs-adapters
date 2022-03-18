@@ -1,7 +1,9 @@
-import { deepAccess } from '../src/utils.js';
+import {deepAccess, getBidIdParameter, logError, logMessage, logWarn} from '../src/utils.js';
 import {config} from '../src/config.js';
 import {registerBidder} from '../src/adapters/bidderFactory.js';
-import { BANNER, VIDEO } from '../src/mediaTypes.js';
+import {BANNER, VIDEO} from '../src/mediaTypes.js';
+import {Renderer} from '../src/Renderer.js';
+import {OUTSTREAM} from '../src/video.js';
 
 const BIDDER_CODE = 'dspx';
 const ENDPOINT_URL = 'https://buyer.dspx.tv/request/';
@@ -106,6 +108,7 @@ export const spec = {
   },
   interpretResponse: function(serverResponse, bidRequest) {
     const bidResponses = [];
+    const context = deepAccess(bidRequest, 'mediaTypes.video.context');
     const response = serverResponse.body;
     const crid = response.crid || 0;
     const cpm = response.cpm / 1000000 || 0;
@@ -145,6 +148,10 @@ export const spec = {
 
       if (response.adTag) {
         bidResponse.ad = response.adTag;
+      }
+
+      if (context === OUTSTREAM) {
+        bidResponse.renderer = newRenderer(bidRequest, response);
       }
 
       if (response.bid_appendix) {
@@ -324,6 +331,64 @@ function getMediaTypesInfo(bid) {
     mediaTypesInfo[BANNER] = getBannerSizes(bid);
   }
   return mediaTypesInfo;
+}
+
+/**
+ * Create a new renderer
+ *
+ * @param bidRequest
+ * @param response
+ * @returns {Renderer}
+ */
+function newRenderer(bidRequest, response) {
+  logMessage('DSPx: newRenderer', bidRequest, response);
+  const renderer = Renderer.install({
+    id: response.renderer.id || response.bid_id,
+    url: (bidRequest.params && bidRequest.params.rendererUrl) || response.renderer.url,
+    config: response.renderer.options || deepAccess(bidRequest, 'renderer.options'),
+    loaded: false
+  });
+
+  try {
+    renderer.setRender(outstreamRender);
+  } catch (err) {
+    logWarn('Prebid Error calling setRender on renderer', err);
+  }
+  return renderer;
+}
+
+/**
+ * Outstream Render Function
+ *
+ * @param bid
+ */
+function outstreamRender(bid) {
+  logMessage('DSPx: outstreamRender', bid);
+
+  const embedCode = bid.renderer.config.code;
+  if (typeof bid.renderer.config.customRender === 'function') {
+    bid.renderer.config.customRender(bid, embedCode);
+    return;
+  }
+
+  try {
+    const inIframe = getBidIdParameter('iframe', bid.renderer.config);
+    if (inIframe && window.document.getElementById(inIframe).nodeName === 'IFRAME') {
+      const iframe = window.document.getElementById(inIframe);
+      let framedoc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
+      framedoc.body.appendChild(embedCode);
+      return;
+    }
+
+    const slot = getBidIdParameter('slot', bid.renderer.config) || bid.adUnitCode;
+    if (slot && window.document.getElementById(slot)) {
+      window.document.getElementById(slot).appendChild(embedCode);
+    } else if (slot) {
+      logError('[dspx][renderer] Error: spot not found');
+    }
+  } catch (err) {
+    logError('[dspx][renderer] Error:' + err.message)
+  }
 }
 
 registerBidder(spec);
