@@ -3,7 +3,6 @@ import {config} from '../src/config.js';
 import {registerBidder} from '../src/adapters/bidderFactory.js';
 import {BANNER, VIDEO} from '../src/mediaTypes.js';
 import {Renderer} from '../src/Renderer.js';
-import {OUTSTREAM} from '../src/video.js';
 
 const BIDDER_CODE = 'dspx';
 const ENDPOINT_URL = 'https://buyer.dspx.tv/request/';
@@ -22,15 +21,24 @@ export const spec = {
     return validBidRequests.map(bidRequest => {
       const params = bidRequest.params;
 
-      const placementId = params.placement;
       const rnd = Math.floor(Math.random() * 99999999999);
       const referrer = bidderRequest.refererInfo.referer;
       const bidId = bidRequest.bidId;
-      const isDev = params.devMode || false;
       const pbcode = bidRequest.adUnitCode || false; // div id
       const auctionId = bidRequest.auctionId || false;
+      const isDev = params.devMode || false;
 
       let endpoint = isDev ? ENDPOINT_URL_DEV : ENDPOINT_URL;
+      let placementId = params.placement;
+
+      // dev config
+      if (isDev && params.dev) {
+        endpoint = params.dev.endpoint || endpoint;
+        placementId = params.dev.placement || placementId;
+        if (params.dev.pfilter !== undefined) {
+          params.pfilter = params.dev.pfilter;
+        }
+      }
 
       let mediaTypesInfo = getMediaTypesInfo(bidRequest);
       let type = isBannerRequest(bidRequest) ? BANNER : VIDEO;
@@ -107,8 +115,9 @@ export const spec = {
     });
   },
   interpretResponse: function(serverResponse, bidRequest) {
+    logMessage('DSPx: serverResponse', serverResponse);
+    logMessage('DSPx: bidRequest', bidRequest);
     const bidResponses = [];
-    const context = deepAccess(bidRequest, 'mediaTypes.video.context');
     const response = serverResponse.body;
     const crid = response.crid || 0;
     const cpm = response.cpm / 1000000 || 0;
@@ -136,10 +145,12 @@ export const spec = {
         bidResponse.vastUrl = response.vastUrl;
         bidResponse.mediaType = 'video';
       }
-
       if (response.vastXml) {
         bidResponse.vastXml = response.vastXml;
         bidResponse.mediaType = 'video';
+      }
+      if (response.renderer) {
+        bidResponse.renderer = newRenderer(bidRequest, response);
       }
 
       if (response.videoCacheKey) {
@@ -148,10 +159,6 @@ export const spec = {
 
       if (response.adTag) {
         bidResponse.ad = response.adTag;
-      }
-
-      if (context === OUTSTREAM) {
-        bidResponse.renderer = newRenderer(bidRequest, response);
       }
 
       if (response.bid_appendix) {
@@ -363,32 +370,68 @@ function newRenderer(bidRequest, response) {
  * @param bid
  */
 function outstreamRender(bid) {
-  logMessage('DSPx: outstreamRender', bid);
-
-  const embedCode = bid.renderer.config.code;
-  if (typeof bid.renderer.config.customRender === 'function') {
-    bid.renderer.config.customRender(bid, embedCode);
-    return;
-  }
-
+  logMessage('DSPx: outstreamRender bid:', bid);
+  const embedCode = createOutstreamEmbedCode(bid);
   try {
     const inIframe = getBidIdParameter('iframe', bid.renderer.config);
     if (inIframe && window.document.getElementById(inIframe).nodeName === 'IFRAME') {
       const iframe = window.document.getElementById(inIframe);
       let framedoc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
       framedoc.body.appendChild(embedCode);
+      if (typeof window.dspxRender === 'function') {
+        window.dspxRender(bid);
+      } else {
+        logError('[dspx][renderer] Error: dspxRender function is not found');
+      }
       return;
     }
 
     const slot = getBidIdParameter('slot', bid.renderer.config) || bid.adUnitCode;
     if (slot && window.document.getElementById(slot)) {
       window.document.getElementById(slot).appendChild(embedCode);
+      if (typeof window.dspxRender === 'function') {
+        window.dspxRender(bid);
+      } else {
+        logError('[dspx][renderer] Error: dspxRender function is not found');
+      }
     } else if (slot) {
-      logError('[dspx][renderer] Error: spot not found');
+      logError('[dspx][renderer] Error: slot not found');
     }
   } catch (err) {
     logError('[dspx][renderer] Error:' + err.message)
   }
+}
+
+/**
+ * create Outstream Embed Code Node
+ *
+ * @param bid
+ * @returns {DocumentFragment}
+ */
+function createOutstreamEmbedCode(bid) {
+  const fragment = window.document.createDocumentFragment();
+  let div = window.document.createElement('div');
+  div.innerHTML = bid.renderer.config.code;
+  fragment.appendChild(div);
+
+  // run scripts
+  var scripts = div.getElementsByTagName('script');
+  var scriptsClone = [];
+  for (var idx = 0; idx < scripts.length; idx++) {
+    scriptsClone.push(scripts[idx]);
+  }
+  for (var i = 0; i < scriptsClone.length; i++) {
+    var currentScript = scriptsClone[i];
+    var s = document.createElement('script');
+    for (var j = 0; j < currentScript.attributes.length; j++) {
+      var a = currentScript.attributes[j];
+      s.setAttribute(a.name, a.value);
+    }
+    s.appendChild(document.createTextNode(currentScript.innerHTML));
+    currentScript.parentNode.replaceChild(s, currentScript);
+  }
+
+  return fragment;
 }
 
 registerBidder(spec);

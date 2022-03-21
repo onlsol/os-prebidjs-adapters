@@ -142,7 +142,35 @@ describe('dspxAdapter', function () {
       'bidderRequestId': '22edbae2733bf67',
       'auctionId': '1d1a030790a478',
       'adUnitCode': 'testDiv4'
-    }
+    },
+    {
+      'bidder': 'dspx',
+      'params': {
+        'placement': '101',
+        'devMode': true,
+        'dev': {
+          'endpoint': 'http://localhost',
+          'placement': '107',
+          'pfilter': {'test': 1}
+        }
+      },
+      'mediaTypes': {
+        'video': {
+          'playerSize': [640, 480],
+          'context': 'instream'
+        },
+        'banner': {
+          'sizes': [
+            [300, 250]
+          ]
+        }
+      },
+
+      'bidId': '30b31c1838de1e4',
+      'bidderRequestId': '22edbae2733bf67',
+      'auctionId': '1d1a030790a478',
+      'adUnitCode': 'testDiv3'
+    },
 
     ];
 
@@ -201,6 +229,14 @@ describe('dspxAdapter', function () {
       expect(request5.method).to.equal('GET');
       let data = request5.data.replace(/rnd=\d+\&/g, '').replace(/ref=.*\&bid/g, 'bid').replace(/pbver=.*?&/g, 'pbver=test&');
       expect(data).to.equal('_f=auto&alternative=prebid_js&inventory_item_id=101&srw=640&srh=480&idt=100&bid_id=30b31c1838de1e41&pbver=test&prebidDevMode=1&auctionId=1d1a030790a478&pbcode=testDiv4&media_types%5Bvideo%5D=640x480&videoContext=instream&vf=vast4');
+    });
+
+    var request6 = spec.buildRequests([bidRequests[5]], bidderRequestWithoutGdpr)[0];
+    it('sends bid request without gdprConsent  to our DEV endpoint with overriden DEV params via GET', function () {
+      expect(request6.method).to.equal('GET');
+      expect(request6.url).to.equal('http://localhost');
+      let data = request6.data.replace(/rnd=\d+\&/g, '').replace(/ref=.*\&bid/g, 'bid').replace(/pbver=.*?&/g, 'pbver=test&');
+      expect(data).to.equal('_f=auto&alternative=prebid_js&inventory_item_id=107&srw=300&srh=250&idt=100&bid_id=30b31c1838de1e4&pbver=test&pfilter%5Btest%5D=1&prebidDevMode=1&auctionId=1d1a030790a478&pbcode=testDiv3&media_types%5Bvideo%5D=640x480&media_types%5Bbanner%5D=300x250&videoContext=instream');
     });
   });
 
