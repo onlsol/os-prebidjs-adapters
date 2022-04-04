@@ -111,7 +111,10 @@ describe('dspxAdapter', function () {
       'mediaTypes': {
         'video': {
           'playerSize': [640, 480],
-          'context': 'instream'
+          'context': 'instream',
+          'protocols': [1, 2],
+          'playbackmethod': [2],
+          'skip': 1
         },
         'banner': {
           'sizes': [
@@ -135,7 +138,14 @@ describe('dspxAdapter', function () {
       'mediaTypes': {
         'video': {
           'playerSize': [640, 480],
-          'context': 'instream'
+          'context': 'instream',
+          'protocols': [1, 2],
+          'playbackmethod': [2],
+          'skip': 1,
+          'renderer': {
+            url: 'example.com/videoRenderer.js',
+            render: function (bid) { alert('test'); }
+          }
         }
       },
       'bidId': '30b31c1838de1e41',
@@ -157,7 +167,11 @@ describe('dspxAdapter', function () {
       'mediaTypes': {
         'video': {
           'playerSize': [640, 480],
-          'context': 'instream'
+          'context': 'instream',
+          'mimes': ['video/mp4'],
+          'protocols': [1, 2],
+          'playbackmethod': [2],
+          'skip': 1
         },
         'banner': {
           'sizes': [
@@ -221,14 +235,14 @@ describe('dspxAdapter', function () {
       expect(request4.method).to.equal('GET');
       expect(request4.url).to.equal(ENDPOINT_URL_DEV);
       let data = request4.data.replace(/rnd=\d+\&/g, '').replace(/ref=.*\&bid/g, 'bid').replace(/pbver=.*?&/g, 'pbver=test&');
-      expect(data).to.equal('_f=auto&alternative=prebid_js&inventory_item_id=101&srw=300&srh=250&idt=100&bid_id=30b31c1838de1e4&pbver=test&prebidDevMode=1&auctionId=1d1a030790a478&pbcode=testDiv3&media_types%5Bvideo%5D=640x480&media_types%5Bbanner%5D=300x250&videoContext=instream');
+      expect(data).to.equal('_f=auto&alternative=prebid_js&inventory_item_id=101&srw=300&srh=250&idt=100&bid_id=30b31c1838de1e4&pbver=test&prebidDevMode=1&auctionId=1d1a030790a478&pbcode=testDiv3&media_types%5Bvideo%5D=640x480&media_types%5Bbanner%5D=300x250&videoContext=instream&vpl%5Bprotocols%5D%5B0%5D=1&vpl%5Bprotocols%5D%5B1%5D=2&vpl%5Bplaybackmethod%5D%5B0%5D=2&vpl%5Bskip%5D=1');
     });
 
     var request5 = spec.buildRequests([bidRequests[4]], bidderRequestWithoutGdpr)[0];
     it('sends bid video request to our endpoint via GET', function () {
       expect(request5.method).to.equal('GET');
       let data = request5.data.replace(/rnd=\d+\&/g, '').replace(/ref=.*\&bid/g, 'bid').replace(/pbver=.*?&/g, 'pbver=test&');
-      expect(data).to.equal('_f=auto&alternative=prebid_js&inventory_item_id=101&srw=640&srh=480&idt=100&bid_id=30b31c1838de1e41&pbver=test&prebidDevMode=1&auctionId=1d1a030790a478&pbcode=testDiv4&media_types%5Bvideo%5D=640x480&videoContext=instream&vf=vast4');
+      expect(data).to.equal('_f=auto&alternative=prebid_js&inventory_item_id=101&srw=640&srh=480&idt=100&bid_id=30b31c1838de1e41&pbver=test&prebidDevMode=1&auctionId=1d1a030790a478&pbcode=testDiv4&media_types%5Bvideo%5D=640x480&videoContext=instream&vf=vast4&vpl%5Bprotocols%5D%5B0%5D=1&vpl%5Bprotocols%5D%5B1%5D=2&vpl%5Bplaybackmethod%5D%5B0%5D=2&vpl%5Bskip%5D=1');
     });
 
     var request6 = spec.buildRequests([bidRequests[5]], bidderRequestWithoutGdpr)[0];
@@ -236,7 +250,7 @@ describe('dspxAdapter', function () {
       expect(request6.method).to.equal('GET');
       expect(request6.url).to.equal('http://localhost');
       let data = request6.data.replace(/rnd=\d+\&/g, '').replace(/ref=.*\&bid/g, 'bid').replace(/pbver=.*?&/g, 'pbver=test&');
-      expect(data).to.equal('_f=auto&alternative=prebid_js&inventory_item_id=107&srw=300&srh=250&idt=100&bid_id=30b31c1838de1e4&pbver=test&pfilter%5Btest%5D=1&prebidDevMode=1&auctionId=1d1a030790a478&pbcode=testDiv3&media_types%5Bvideo%5D=640x480&media_types%5Bbanner%5D=300x250&videoContext=instream');
+      expect(data).to.equal('_f=auto&alternative=prebid_js&inventory_item_id=107&srw=300&srh=250&idt=100&bid_id=30b31c1838de1e4&pbver=test&pfilter%5Btest%5D=1&prebidDevMode=1&auctionId=1d1a030790a478&pbcode=testDiv3&media_types%5Bvideo%5D=640x480&media_types%5Bbanner%5D=300x250&videoContext=instream&vpl%5Bmimes%5D%5B0%5D=video%2Fmp4&vpl%5Bprotocols%5D%5B0%5D=1&vpl%5Bprotocols%5D%5B1%5D=2&vpl%5Bplaybackmethod%5D%5B0%5D=2&vpl%5Bskip%5D=1');
     });
   });
 

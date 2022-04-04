@@ -3,11 +3,15 @@ import {config} from '../src/config.js';
 import {registerBidder} from '../src/adapters/bidderFactory.js';
 import {BANNER, VIDEO} from '../src/mediaTypes.js';
 import {Renderer} from '../src/Renderer.js';
+import {includes} from '../src/polyfill.js';
 
 const BIDDER_CODE = 'dspx';
 const ENDPOINT_URL = 'https://buyer.dspx.tv/request/';
 const ENDPOINT_URL_DEV = 'https://dcbuyer.dspx.tv/request/';
 const GVLID = 602;
+const VIDEO_ORTB_PARAMS = ['mimes', 'minduration', 'maxduration', 'protocols', 'w', 'h', 'startdelay', 'placement', 'linearity', 'skip', 'skipmin',
+  'skipafter', 'sequence', 'battr', 'maxextended', 'minbitrate', 'maxbitrate', 'boxingallowed', 'playbackmethod', 'playbackend', 'delivery', 'pos', 'companionad',
+  'api', 'companiontype', 'ext'];
 
 export const spec = {
   code: BIDDER_CODE,
@@ -105,6 +109,11 @@ export const spec = {
         if (params.vastFormat !== undefined) {
           payload.vf = params.vastFormat;
         }
+        payload.vpl = {};
+        let videoParams = deepAccess(bidRequest, 'mediaTypes.video');
+        Object.keys(videoParams)
+          .filter(key => includes(VIDEO_ORTB_PARAMS, key))
+          .forEach(key => payload.vpl[key] = videoParams[key]);
       }
 
       return {
