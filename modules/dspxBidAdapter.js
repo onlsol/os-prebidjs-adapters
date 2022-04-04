@@ -105,7 +105,7 @@ export const spec = {
 
       payload.media_types = convertMediaInfoForRequest(mediaTypesInfo);
       if (mediaTypesInfo[VIDEO] !== undefined) {
-        payload.videoContext = getVideoContext(bidRequest);
+        payload.vctx = getVideoContext(bidRequest);
         if (params.vastFormat !== undefined) {
           payload.vf = params.vastFormat;
         }
