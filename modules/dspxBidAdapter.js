@@ -1,4 +1,4 @@
-import {deepAccess, getBidIdParameter, logError, logMessage, logWarn} from '../src/utils.js';
+import {deepAccess, getBidIdParameter, logError, logMessage, logWarn, isFn} from '../src/utils.js';
 import {config} from '../src/config.js';
 import {registerBidder} from '../src/adapters/bidderFactory.js';
 import {BANNER, VIDEO} from '../src/mediaTypes.js';
@@ -89,11 +89,33 @@ export const spec = {
         payload.prebidDevMode = 1;
       }
 
-      if (bidRequest.userId && bidRequest.userId.netId) {
-        payload.did_netid = bidRequest.userId.netId;
+      // fill userId params
+      if (bidRequest.userId) {
+        if (bidRequest.userId.netId) {
+          payload.did_netid = bidRequest.userId.netId;
+        }
+        if (bidRequest.userId.uid2) {
+          payload.did_uid2 = bidRequest.userId.uid2;
+        }
+        if (bidRequest.userId.id5id) {
+          payload.did_id5 = bidRequest.userId.id5id;
+        }
       }
-      if (bidRequest.userId && bidRequest.userId.uid2) {
-        payload.did_uid2 = bidRequest.userId.uid2;
+
+      if (bidRequest.schain) {
+        payload.schain = bidRequest.schain;
+      }
+
+      if (payload.pfilter === undefined || !payload.pfilter.floorprice) {
+        let bidFloor = getBidFloor(bidRequest);
+        if (bidFloor > 0) {
+          if (payload.pfilter !== undefined) {
+            payload.pfilter.floorprice = bidFloor;
+          } else {
+            payload.pfilter = { 'floorprice': bidFloor };
+          }
+          // payload.bidFloor = bidFloor;
+        }
       }
 
       if (auctionId) {
@@ -347,6 +369,28 @@ function getMediaTypesInfo(bid) {
     mediaTypesInfo[BANNER] = getBannerSizes(bid);
   }
   return mediaTypesInfo;
+}
+
+/**
+ * Get Bid Floor
+ * @param bid
+ * @returns {number|*}
+ */
+function getBidFloor(bid) {
+  if (!isFn(bid.getFloor)) {
+    return deepAccess(bid, 'params.bidfloor', 0);
+  }
+
+  try {
+    const bidFloor = bid.getFloor({
+      currency: 'EUR',
+      mediaType: '*',
+      size: '*',
+    });
+    return bidFloor.floor;
+  } catch (_) {
+    return 0
+  }
 }
 
 /**

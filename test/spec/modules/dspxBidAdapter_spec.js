@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import { spec } from 'modules/dspxBidAdapter.js';
 import { newBidder } from 'src/adapters/bidderFactory.js';
+import {deepClone} from '../../../src/utils';
 
 const ENDPOINT_URL = 'https://buyer.dspx.tv/request/';
 const ENDPOINT_URL_DEV = 'https://dcbuyer.dspx.tv/request/';
@@ -65,7 +66,21 @@ describe('dspxAdapter', function () {
       'adUnitCode': 'testDiv1',
       'userId': {
         'netId': '123',
-        'uid2': '456'
+        'uid2': '456',
+        'id5id': '789'
+      },
+      'schain': {
+        'ver': '1.0',
+        'complete': 1,
+        'nodes': [
+          {
+            'asi': 'example.com',
+            'sid': '0',
+            'hp': 1,
+            'rid': 'bidrequestid',
+            'domain': 'example.com'
+          }
+        ]
       }
     },
     {
@@ -205,7 +220,7 @@ describe('dspxAdapter', function () {
       expect(request1.method).to.equal('GET');
       expect(request1.url).to.equal(ENDPOINT_URL);
       let data = request1.data.replace(/rnd=\d+\&/g, '').replace(/ref=.*\&bid/g, 'bid').replace(/pbver=.*?&/g, 'pbver=test&');
-      expect(data).to.equal('_f=auto&alternative=prebid_js&inventory_item_id=6682&srw=300&srh=250&idt=100&bid_id=30b31c1838de1e1&pbver=test&pfilter%5Bfloorprice%5D=1000000&pfilter%5Bprivate_auction%5D=0&pfilter%5Bgeo%5D%5Bcountry%5D=DE&pfilter%5Bgdpr_consent%5D=BOJ%2FP2HOJ%2FP2HABABMAAAAAZ%2BA%3D%3D&pfilter%5Bgdpr%5D=true&bcat=IAB2%2CIAB4&dvt=desktop&did_netid=123&did_uid2=456&auctionId=1d1a030790a475&pbcode=testDiv1&media_types%5Bbanner%5D=300x250');
+      expect(data).to.equal('_f=auto&alternative=prebid_js&inventory_item_id=6682&srw=300&srh=250&idt=100&bid_id=30b31c1838de1e1&pbver=test&pfilter%5Bfloorprice%5D=1000000&pfilter%5Bprivate_auction%5D=0&pfilter%5Bgeo%5D%5Bcountry%5D=DE&pfilter%5Bgdpr_consent%5D=BOJ%2FP2HOJ%2FP2HABABMAAAAAZ%2BA%3D%3D&pfilter%5Bgdpr%5D=true&bcat=IAB2%2CIAB4&dvt=desktop&did_netid=123&did_uid2=456&did_id5=789&schain%5Bver%5D=1.0&schain%5Bcomplete%5D=1&schain%5Bnodes%5D%5B0%5D%5Basi%5D=example.com&schain%5Bnodes%5D%5B0%5D%5Bsid%5D=0&schain%5Bnodes%5D%5B0%5D%5Bhp%5D=1&schain%5Bnodes%5D%5B0%5D%5Brid%5D=bidrequestid&schain%5Bnodes%5D%5B0%5D%5Bdomain%5D=example.com&auctionId=1d1a030790a475&pbcode=testDiv1&media_types%5Bbanner%5D=300x250');
     });
 
     var request2 = spec.buildRequests([bidRequests[1]], bidderRequest)[0];
@@ -251,6 +266,45 @@ describe('dspxAdapter', function () {
       expect(request6.url).to.equal('http://localhost');
       let data = request6.data.replace(/rnd=\d+\&/g, '').replace(/ref=.*\&bid/g, 'bid').replace(/pbver=.*?&/g, 'pbver=test&');
       expect(data).to.equal('_f=auto&alternative=prebid_js&inventory_item_id=107&srw=300&srh=250&idt=100&bid_id=30b31c1838de1e4&pbver=test&pfilter%5Btest%5D=1&prebidDevMode=1&auctionId=1d1a030790a478&pbcode=testDiv3&media_types%5Bvideo%5D=640x480&media_types%5Bbanner%5D=300x250&vctx=instream&vpl%5Bmimes%5D%5B0%5D=video%2Fmp4&vpl%5Bprotocols%5D%5B0%5D=1&vpl%5Bprotocols%5D%5B1%5D=2&vpl%5Bplaybackmethod%5D%5B0%5D=2&vpl%5Bskip%5D=1');
+    });
+
+    // bidfloor tests
+    const getFloorResponse = {currency: 'EUR', floor: 5};
+    let testBidRequest = deepClone(bidRequests[1]);
+    let floorRequest = spec.buildRequests([testBidRequest], bidderRequestWithoutGdpr)[0];
+
+    // 1. getBidFloor not exist AND bidfloor not exist - no floorprice in request
+    it('bidfloor is not exists in request', function () {
+      expect(floorRequest.data).to.not.contain('floorprice');
+    });
+
+    // 2. getBidFloor not exist AND pfilter.floorprice exist - use pfilter.floorprice property
+    it('bidfloor is equal 0.5', function () {
+      testBidRequest = deepClone(bidRequests[0]);
+       testBidRequest.params.pfilter = {
+        'floorprice': 0.5
+      };
+      floorRequest = spec.buildRequests([testBidRequest], bidderRequestWithoutGdpr)[0];
+      expect(floorRequest.data).to.contain('floorprice%5D=0.5');
+    });
+
+    // 3. getBidFloor exist AND pfilter.floorprice not exist - use getFloor method
+    it('bidfloor is equal 5', function () {
+      testBidRequest = deepClone(bidRequests[1]);
+      testBidRequest.getFloor = () => getFloorResponse;
+      floorRequest = spec.buildRequests([testBidRequest], bidderRequestWithoutGdpr)[0];
+      expect(floorRequest.data).to.contain('floorprice%5D=5');
+    });
+
+    // 4. getBidFloor exist AND pfilter.floorprice exist -> use getFloor method
+    it('bidfloor is equal 0.35', function () {
+      testBidRequest = deepClone(bidRequests[0]);
+      testBidRequest.getFloor = () => getFloorResponse;
+      testBidRequest.params.pfilter = {
+        'floorprice': 0.35
+      };
+      floorRequest = spec.buildRequests([testBidRequest], bidderRequestWithoutGdpr)[0];
+      expect(floorRequest.data).to.contain('floorprice%5D=0.35');
     });
   });
 
