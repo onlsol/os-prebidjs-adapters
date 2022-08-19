@@ -26,7 +26,7 @@ export const spec = {
       const params = bidRequest.params;
 
       const rnd = Math.floor(Math.random() * 99999999999);
-      const referrer = bidderRequest.refererInfo.referer;
+      const referrer = bidderRequest.refererInfo.page;
       const bidId = bidRequest.bidId;
       const pbcode = bidRequest.adUnitCode || false; // div id
       const auctionId = bidRequest.auctionId || false;
@@ -80,7 +80,7 @@ export const spec = {
       }
 
       if (params.bcat !== undefined) {
-        payload.bcat = params.bcat;
+        payload.bcat = deepAccess(bidderRequest.ortb2Imp, 'bcat') || params.bcat;
       }
       if (params.dvt !== undefined) {
         payload.dvt = params.dvt;
@@ -142,7 +142,7 @@ export const spec = {
         method: 'GET',
         url: endpoint,
         data: objectToQueryString(payload),
-      }
+      };
     });
   },
   interpretResponse: function(serverResponse, bidRequest) {
