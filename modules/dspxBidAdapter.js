@@ -100,6 +100,21 @@ export const spec = {
         if (bidRequest.userId.id5id) {
           payload.did_id5 = bidRequest.userId.id5id;
         }
+
+        let sharedId = deepAccess(bidRequest, 'userId.sharedid.id');
+        if (sharedId) {
+          payload.did_sharedid = sharedId;
+        }
+        let pubcId = deepAccess(bidRequest, 'userId.pubcid');
+        if (pubcId) {
+            payload.did_pubcid = pubcId;
+        }
+        let crumbs_pubcid = deepAccess(bidRequest, 'crumbs.pubcid');
+        if (crumbs_pubcid) {
+          payload.did_crumbs_pubcid = crumbs_pubcid;
+        }
+
+
       }
 
       if (bidRequest.schain) {
