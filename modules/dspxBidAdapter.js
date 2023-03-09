@@ -98,7 +98,10 @@ export const spec = {
           payload.did_uid2 = bidRequest.userId.uid2;
         }
         if (bidRequest.userId.id5id) {
-          payload.did_id5 = bidRequest.userId.id5id;
+          payload.did_id5 = bidRequest.userId.id5id.uid || "0";
+          if (bidRequest.userId.id5id.ext.linkType !== undefined) {
+            payload.did_id5_linktype = bidRequest.userId.id5id.ext.linkType;
+          }
         }
 
         let sharedId = deepAccess(bidRequest, 'userId.sharedid.id');
