@@ -94,16 +94,16 @@ export const spec = {
         if (bidRequest.userId.netId) {
           payload.did_netid = bidRequest.userId.netId;
         }
-        if (bidRequest.userId.uid2) {
-          payload.did_uid2 = bidRequest.userId.uid2;
-        }
         if (bidRequest.userId.id5id) {
           payload.did_id5 = bidRequest.userId.id5id.uid || "0";
           if (bidRequest.userId.id5id.ext.linkType !== undefined) {
             payload.did_id5_linktype = bidRequest.userId.id5id.ext.linkType;
           }
         }
-
+        let uId2 = deepAccess(bidRequest, 'userId.uid2.id');
+        if (uId2) {
+          payload.did_uid2 = uId2;
+        }
         let sharedId = deepAccess(bidRequest, 'userId.sharedid.id');
         if (sharedId) {
           payload.did_sharedid = sharedId;
@@ -114,7 +114,7 @@ export const spec = {
         }
         let crumbs_pubcid = deepAccess(bidRequest, 'crumbs.pubcid');
         if (crumbs_pubcid) {
-          payload.did_crumbs_pubcid = crumbs_pubcid;
+          payload.did_cpubcid = crumbs_pubcid;
         }
 
 
