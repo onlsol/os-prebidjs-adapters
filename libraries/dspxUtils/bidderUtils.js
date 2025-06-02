@@ -13,7 +13,51 @@ import {deepAccess, isArray, isEmptyStr, isFn, logError} from '../../src/utils.j
  * @param payload
  */
 export function fillUsersIds(bidRequest, payload) {
-  if (bidRequest.hasOwnProperty('userId')) {
+  if (bidRequest.hasOwnProperty('userIdAsEids')) {
+    let didMapping = {
+      did_netid: 'netid.de',
+      did_uid2: 'uidapi.com',
+      did_sharedid: 'sharedid.org',
+      did_pubcid: 'pubcid.org',
+      did_uqid: '??',
+      did_cruid: 'criteo.com',
+      did_euid: '??',
+      did_tdid: 'adserver.org',
+      did_ppuid: '??',
+      did_cpubcid: '??',
+      did_id5: 'id5-sync.com',
+      did_id5_linktype: ['id5-sync.com', function (x) {
+        return x.ext?.linkType;
+      }],
+    };
+    bidRequest.userIdAsEids?.forEach(eid => {
+      for (let paramName in didMapping) {
+        let targetSource = didMapping[paramName];
+        let func = null;
+        if (typeof targetSource === typeof Array) {
+          targetSource = targetSource[0];
+          func = targetSource[1];
+        }
+        if (eid.source === targetSource && eid.uids?.[0]?.id) {
+          if (func == null) {
+            if (eid.uids?.[0]?.id) {
+              payload[paramName] = eid.uids[0].id;
+            }
+          } else {
+            let val = func(eid);
+            if (val) {
+              payload[paramName] = func(eid);
+            }
+          }
+        }
+      }
+
+    });
+  }
+
+
+  /*
+  if (bidRequest.hasOwnProperty('userIdAsEids')) {
     let didMapping = {
       did_netid: 'userId.netId',
       did_id5: 'userId.id5id.uid',
@@ -44,6 +88,7 @@ export function fillUsersIds(bidRequest, payload) {
       },
       did_cpubcid: 'crumbs.pubcid'
     };
+
     for (let paramName in didMapping) {
       let path = didMapping[paramName];
 
@@ -72,6 +117,7 @@ export function fillUsersIds(bidRequest, payload) {
       }
     }
   }
+   */
 }
 
 export function appendToUrl(url, what) {
