@@ -24,7 +24,6 @@ export function fillUsersIds(bidRequest, payload) {
       did_euid: '??',
       did_tdid: 'adserver.org',
       did_ppuid: '??',
-      did_cpubcid: '??',
       did_id5: 'id5-sync.com',
       did_id5_linktype: ['id5-sync.com', function (x) {
         return x.ext?.linkType;
@@ -54,7 +53,7 @@ export function fillUsersIds(bidRequest, payload) {
 
     });
   }
-
+  payload["did_cpubcid"] = bidRequest.crumbs?.pubcid;
 
   /*
   if (bidRequest.hasOwnProperty('userIdAsEids')) {
