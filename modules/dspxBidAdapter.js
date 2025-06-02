@@ -149,8 +149,20 @@ export const spec = {
       }
 
       // schain
-      if (bidRequest.schain) {
-        payload.schain = bidRequest.schain;
+      if (bidRequest.schain && bidRequest.schain.ver && bidRequest.schain.complete && bidRequest.schain.nodes) {
+        let schain = bidRequest.schain;
+        let schainString = schain.ver  + ","  + schain.complete;
+        for (let node of schain.nodes) {
+            schainString += '!' + [
+              node.asi ?? '',
+              node.sid ?? '',
+              node.hp ?? '',
+              node.rid ?? '',
+              node.name ?? '',
+              node.domain ?? '',
+            ].join(",");
+        }
+        payload.schain = schainString;
       }
 
       // fill userId params
