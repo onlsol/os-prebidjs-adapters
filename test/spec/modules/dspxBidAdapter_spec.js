@@ -73,12 +73,27 @@ describe('dspxAdapter', function () {
       'bidderRequestId': '22edbae2733bf61',
       'auctionId': '1d1a030790a475',
       'adUnitCode': 'testDiv1',
+
+      'userIdAsEids': [{
+        'source': 'criteo.com',
+        'uids': [{
+          'id': 'test',
+          'atype': 1
+        }]
+      }, {
+        'source': 'pubcid.org',
+        'uids': [{
+          'id': 'test',
+          'atype': 1
+        }]
+      }],
+
       'userId': {
         'netId': '123',
         'uid2': {'id': '456'},
         'pubcid': 'e09ab6a3-ae74-4f01-b2e8-81b141d6dc61',
         'id5id': {
-          'uid': 'ID5-ZHMOcvSShIBZiIth_yYh9odjNFxVEmMQ_i5TArPfWw!ID5*dtrjfV5mPLasyya5TW2IE9oVzQZwx7xRPGyAYS4hcWkAAOoxoFef4bIoREpQys8x',
+          'uid': 'ID5-ZHM',
           'ext': {
             'linkType': 2
           }
@@ -124,7 +139,7 @@ describe('dspxAdapter', function () {
         ]
       }
     },
-    {
+    { // 1
       'bidder': 'dspx',
       'params': {
         'placement': '101',
@@ -136,7 +151,7 @@ describe('dspxAdapter', function () {
       'bidId': '30b31c1838de1e2',
       'bidderRequestId': '22edbae2733bf62',
       'auctionId': '1d1a030790a476'
-    }, {
+    }, { // 2
       'bidder': 'dspx',
       'params': {
         'placement': '6682',
@@ -158,7 +173,7 @@ describe('dspxAdapter', function () {
       'auctionId': '1d1a030790a477',
       'adUnitCode': 'testDiv2'
     },
-    {
+    { // 3
       'bidder': 'dspx',
       'params': {
         'placement': '101',
@@ -184,7 +199,7 @@ describe('dspxAdapter', function () {
       'auctionId': '1d1a030790a478',
       'adUnitCode': 'testDiv3'
     },
-    {
+    { // 4
       'bidder': 'dspx',
       'params': {
         'placement': '101',
@@ -209,7 +224,7 @@ describe('dspxAdapter', function () {
       'auctionId': '1d1a030790a478',
       'adUnitCode': 'testDiv4'
     },
-    {
+    { // 5
       'bidder': 'dspx',
       'params': {
         'placement': '101',
@@ -274,6 +289,7 @@ describe('dspxAdapter', function () {
             domain: 'buyer'
           },
           page: 'http://buyer/schain.php?ver=8.5.0-pre:latest-dev-build&pbjs_debug=true',
+          pagecat: ['IAB3'],
           ref: 'http://buyer/pbjsv/',
           content: {
             id: 'contentID',
@@ -295,6 +311,7 @@ describe('dspxAdapter', function () {
             ]
           }
         },
+        bcat: ['BSW1', 'BSW2'],
       }
     };
 
@@ -303,7 +320,7 @@ describe('dspxAdapter', function () {
       expect(request1.method).to.equal('GET');
       expect(request1.url).to.equal(ENDPOINT_URL);
       let data = request1.data.replace(/rnd=\d+\&/g, '').replace(/ref=.*\&bid/g, 'bid').replace(/pbver=.*?&/g, 'pbver=test&');
-      expect(data).to.equal('_f=auto&alternative=prebid_js&inventory_item_id=6682&srw=300&srh=250&idt=100&bid_id=30b31c1838de1e1&pbver=test&pfilter%5Bfloorprice%5D=1000000&pfilter%5Bprivate_auction%5D=0&pfilter%5Bgeo%5D%5Bcountry%5D=DE&pfilter%5Bgdpr_consent%5D=BOJ%2FP2HOJ%2FP2HABABMAAAAAZ%2BA%3D%3D&pfilter%5Bgdpr%5D=true&bcat=IAB2%2CIAB4&dvt=desktop&auctionId=1d1a030790a475&pbcode=testDiv1&media_types%5Bbanner%5D=300x250&schain=1.0%2C1!example.com%2C0%2C1%2Cbidrequestid%2C%2Cexample.com&did_netid=123&did_id5=ID5-ZHMOcvSShIBZiIth_yYh9odjNFxVEmMQ_i5TArPfWw!ID5*dtrjfV5mPLasyya5TW2IE9oVzQZwx7xRPGyAYS4hcWkAAOoxoFef4bIoREpQys8x&did_id5_linktype=2&did_uid2=456&did_sharedid=01EXPPGZ9C8NKG1MTXVHV98505&did_pubcid=e09ab6a3-ae74-4f01-b2e8-81b141d6dc61&did_tdid=tdid_ID&did_ppuid=1%3Apuburl.com%3Apubid1&did_cpubcid=e09ab6a3-ae74-4f01-b2e8-81b141d6dc61');
+      expect(data).to.equal('_f=auto&alternative=prebid_js&inventory_item_id=6682&srw=300&srh=250&idt=100&bid_id=30b31c1838de1e1&pbver=test&pfilter%5Bfloorprice%5D=1000000&pfilter%5Bprivate_auction%5D=0&pfilter%5Bgeo%5D%5Bcountry%5D=DE&pfilter%5Bgdpr_consent%5D=BOJ%2FP2HOJ%2FP2HABABMAAAAAZ%2BA%3D%3D&pfilter%5Bgdpr%5D=true&bcat=IAB2%2CIAB4&dvt=desktop&auctionId=1d1a030790a475&pbcode=testDiv1&media_types%5Bbanner%5D=300x250&schain=1.0%2C1!example.com%2C0%2C1%2Cbidrequestid%2C%2Cexample.com&did_netid=123&did_id5=ID5-ZHM&did_id5_linktype=2&did_uid2=456&did_sharedid=01EXPPGZ9C8NKG1MTXVHV98505&did_pubcid=e09ab6a3-ae74-4f01-b2e8-81b141d6dc61&did_tdid=tdid_ID&did_ppuid=1%3Apuburl.com%3Apubid1&did_cpubcid=e09ab6a3-ae74-4f01-b2e8-81b141d6dc61');
     });
 
     var request2 = spec.buildRequests([bidRequests[1]], bidderRequest)[0];

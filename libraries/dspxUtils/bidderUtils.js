@@ -133,7 +133,8 @@ export function objectToQueryString(obj, prefix) {
     if (obj.hasOwnProperty(p)) {
       let k = prefix ? prefix + '[' + p + ']' : p;
       let v = obj[p];
-      str.push((v !== null && typeof v === 'object')
+      if (v === null || v === undefined) continue;
+      str.push((typeof v === 'object')
         ? objectToQueryString(v, k)
         : encodeURIComponent(k) + '=' + encodeURIComponent(v));
     }
