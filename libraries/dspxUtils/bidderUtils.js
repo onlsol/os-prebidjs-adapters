@@ -19,34 +19,42 @@ export function fillUsersIds(bidRequest, payload) {
       did_uid2: 'uidapi.com',
       did_sharedid: 'sharedid.org',
       did_pubcid: 'pubcid.org',
-      did_uqid: '??',
       did_cruid: 'criteo.com',
-      did_euid: '??',
       did_tdid: 'adserver.org',
-      did_ppuid: '??',
+      did_pbmid: 'regexp:[esp\.]*pubmatic\.com',
       did_id5: 'id5-sync.com',
-      did_id5_linktype: ['id5-sync.com', function (x) {
-        return x.ext?.linkType;
+      did_id5_linktype: ['id5-sync.com', function (e) {
+        return e.uids?.[0]?.ext?.linkType;
       }],
+      did_yhid: 'yahoo.com',
     };
     bidRequest.userIdAsEids?.forEach(eid => {
       for (let paramName in didMapping) {
         let targetSource = didMapping[paramName];
+
+        // func support
         let func = null;
-        if (typeof targetSource === typeof Array) {
-          targetSource = targetSource[0];
+        if (Array.isArray(targetSource)) {
           func = targetSource[1];
+          targetSource = targetSource[0];
         }
-        if (eid.source === targetSource && eid.uids?.[0]?.id) {
+
+        // regexp support
+        let targetSourceType = 'eq';
+        if (targetSource.includes('regexp:')) {
+          targetSourceType = 'regexp';
+          targetSource = targetSource.substring(7);
+        }
+
+        // fill payload
+        let isMatches = targetSourceType === 'eq' ? eid.source === targetSource : eid.source.match(targetSource);
+        if (isMatches) {
           if (func == null) {
             if (eid.uids?.[0]?.id) {
               payload[paramName] = eid.uids[0].id;
             }
           } else {
-            let val = func(eid);
-            if (val) {
-              payload[paramName] = func(eid);
-            }
+             payload[paramName] = func(eid);
           }
         }
       }
@@ -54,69 +62,6 @@ export function fillUsersIds(bidRequest, payload) {
     });
   }
   payload["did_cpubcid"] = bidRequest.crumbs?.pubcid;
-
-  /*
-  if (bidRequest.hasOwnProperty('userIdAsEids')) {
-    let didMapping = {
-      did_netid: 'userId.netId',
-      did_id5: 'userId.id5id.uid',
-      did_id5_linktype: 'userId.id5id.ext.linkType',
-      did_uid2: 'userId.uid2',
-      did_sharedid: 'userId.sharedid',
-      did_pubcid: 'userId.pubcid',
-      did_uqid: 'userId.utiq',
-      did_cruid: 'userId.criteoid',
-      did_euid: 'userId.euid',
-      // did_tdid: 'unifiedId',
-      did_tdid: 'userId.tdid',
-      did_ppuid: function() {
-        let path = 'userId.pubProvidedId';
-        let value = deepAccess(bidRequest, path);
-        if (isArray(value)) {
-          for (const rec of value) {
-            if (rec.uids && rec.uids.length > 0) {
-              for (let i = 0; i < rec.uids.length; i++) {
-                if ('id' in rec.uids[i] && deepAccess(rec.uids[i], 'ext.stype') === 'ppuid') {
-                  return (rec.uids[i].atype ?? '') + ':' + rec.source + ':' + rec.uids[i].id;
-                }
-              }
-            }
-          }
-        }
-        return undefined;
-      },
-      did_cpubcid: 'crumbs.pubcid'
-    };
-
-    for (let paramName in didMapping) {
-      let path = didMapping[paramName];
-
-      // handle function
-      if (typeof path == 'function') {
-        let value = path(paramName);
-        if (value) {
-          payload[paramName] = value;
-        }
-        continue;
-      }
-      // direct access
-      let value = deepAccess(bidRequest, path);
-      if (typeof value == 'string' || typeof value == 'number') {
-        payload[paramName] = value;
-      } else if (typeof value == 'object') {
-        // trying to find string ID value
-        if (typeof deepAccess(bidRequest, path + '.id') == 'string') {
-          payload[paramName] = deepAccess(bidRequest, path + '.id');
-        } else {
-          if (Object.keys(value).length > 0) {
-            logError(`WARNING: fillUserIds had to use first key in user object to get value for bid.userId key: ${path}.`);
-            payload[paramName] = value[Object.keys(value)[0]];
-          }
-        }
-      }
-    }
-  }
-   */
 }
 
 export function appendToUrl(url, what) {

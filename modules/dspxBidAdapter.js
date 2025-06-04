@@ -80,8 +80,8 @@ export const spec = {
       };
 
       payload.pfilter = params.pfilter ?? {};
-      payload.bcat = deepAccess(bidderRequest.ortb2Imp, 'bcat') ? bidderRequest.ortb2Imp.bcat.join(",") : (params.bcat ?? null);
-      payload.pcat = deepAccess(bidderRequest.ortb2Imp, 'site.pagecat') ? bidderRequest.ortb2Imp.site.pagecat.join(",") : null;
+      payload.bcat = deepAccess(bidderRequest.ortb2, 'bcat') ? bidderRequest.ortb2.bcat.join(",") : (params.bcat ?? null);
+      payload.pcat = deepAccess(bidderRequest.ortb2, 'site.pagecat') ? bidderRequest.ortb2.site.pagecat.join(",") : null;
       payload.dvt = params.dvt ?? null;
       isDev && (payload.prebidDevMode = 1);
 

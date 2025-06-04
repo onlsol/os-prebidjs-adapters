@@ -77,53 +77,72 @@ describe('dspxAdapter', function () {
       'userIdAsEids': [{
         'source': 'criteo.com',
         'uids': [{
-          'id': 'test',
+          'id': 'criteo',
           'atype': 1
         }]
       }, {
         'source': 'pubcid.org',
         'uids': [{
-          'id': 'test',
+          'id': 'pubcid',
           'atype': 1
         }]
-      }],
-
-      'userId': {
-        'netId': '123',
-        'uid2': {'id': '456'},
-        'pubcid': 'e09ab6a3-ae74-4f01-b2e8-81b141d6dc61',
-        'id5id': {
-          'uid': 'ID5-ZHM',
-          'ext': {
-            'linkType': 2
-          }
-        },
-        'sharedid': {
-          'id': '01EXPPGZ9C8NKG1MTXVHV98505',
-          'third': '01EXPPGZ9C8NKG1MTXVHV98505'
-        },
-        'pubProvidedId': [{
-          'source': 'puburl2.com',
-          'uids': [{
-            'id': 'pubid2'
-          }, {
-            'id': 'pubid2-123'
-          }]
-        }, {
-          'source': 'puburl.com',
-          'uids': [{
-            'id': 'pubid1',
+      },
+      {
+        'source': 'netid.de',
+        'uids': [{
+          'id': 'netid',
+          'atype': 1
+        }]
+      },
+      {
+        'source': 'uidapi.com',
+        'uids': [{
+          'id': 'uidapi',
+          'atype': 1
+        }]
+      },
+      {
+        'source': 'sharedid.org',
+        'uids': [{
+          'id': 'sharedid',
+          'atype': 1
+        }]
+      },
+      {
+        'source': 'adserver.org',
+        'uids': [{
+          'id': 'adserver',
+          'atype': 1
+        }]
+      },
+      {
+        'source': 'pubmatic.com',
+        'uids': [{
+          'id': 'pubmatic',
+          'atype': 1
+        }]
+      },
+      {
+        'source': 'yahoo.com',
+        'uids': [{
+          'id': 'yahoo',
+          'atype': 1
+        }]
+      },
+      {
+        'source': 'id5-sync.com',
+        'uids': [
+          {
+            'id': 'ID5UID',
             'atype': 1,
             'ext': {
-              'stype': 'ppuid'
+              'linkType': 2
             }
-          }]
-        }],
-        'euid': {},
-        'tdid': 'tdid_ID',
-      },
+          }
+        ]
+      }],
       'crumbs': {
-        'pubcid': 'e09ab6a3-ae74-4f01-b2e8-81b141d6dc61'
+        'pubcid': 'crumbs_pubcid'
       },
       'schain': {
         'ver': '1.0',
@@ -320,7 +339,7 @@ describe('dspxAdapter', function () {
       expect(request1.method).to.equal('GET');
       expect(request1.url).to.equal(ENDPOINT_URL);
       let data = request1.data.replace(/rnd=\d+\&/g, '').replace(/ref=.*\&bid/g, 'bid').replace(/pbver=.*?&/g, 'pbver=test&');
-      expect(data).to.equal('_f=auto&alternative=prebid_js&inventory_item_id=6682&srw=300&srh=250&idt=100&bid_id=30b31c1838de1e1&pbver=test&pfilter%5Bfloorprice%5D=1000000&pfilter%5Bprivate_auction%5D=0&pfilter%5Bgeo%5D%5Bcountry%5D=DE&pfilter%5Bgdpr_consent%5D=BOJ%2FP2HOJ%2FP2HABABMAAAAAZ%2BA%3D%3D&pfilter%5Bgdpr%5D=true&bcat=IAB2%2CIAB4&dvt=desktop&auctionId=1d1a030790a475&pbcode=testDiv1&media_types%5Bbanner%5D=300x250&schain=1.0%2C1!example.com%2C0%2C1%2Cbidrequestid%2C%2Cexample.com&did_netid=123&did_id5=ID5-ZHM&did_id5_linktype=2&did_uid2=456&did_sharedid=01EXPPGZ9C8NKG1MTXVHV98505&did_pubcid=e09ab6a3-ae74-4f01-b2e8-81b141d6dc61&did_tdid=tdid_ID&did_ppuid=1%3Apuburl.com%3Apubid1&did_cpubcid=e09ab6a3-ae74-4f01-b2e8-81b141d6dc61');
+      expect(data).to.equal('_f=auto&alternative=prebid_js&inventory_item_id=6682&srw=300&srh=250&idt=100&bid_id=30b31c1838de1e1&pbver=test&pfilter%5Bfloorprice%5D=1000000&pfilter%5Bprivate_auction%5D=0&pfilter%5Bgeo%5D%5Bcountry%5D=DE&pfilter%5Bgdpr_consent%5D=BOJ%2FP2HOJ%2FP2HABABMAAAAAZ%2BA%3D%3D&pfilter%5Bgdpr%5D=true&bcat=IAB2%2CIAB4&dvt=desktop&auctionId=1d1a030790a475&pbcode=testDiv1&media_types%5Bbanner%5D=300x250&schain=1.0%2C1!example.com%2C0%2C1%2Cbidrequestid%2C%2Cexample.com&did_cruid=criteo&did_pubcid=pubcid&did_netid=netid&did_uid2=uidapi&did_sharedid=sharedid&did_tdid=adserver&did_pbmid=pubmatic&did_yhid=yahoo&did_id5=ID5UID&did_id5_linktype=2&did_cpubcid=crumbs_pubcid');
     });
 
     var request2 = spec.buildRequests([bidRequests[1]], bidderRequest)[0];
@@ -373,7 +392,7 @@ describe('dspxAdapter', function () {
       expect(request7.method).to.equal('GET');
       expect(request7.url).to.equal('http://localhost');
       let data = request7.data.replace(/rnd=\d+\&/g, '').replace(/ref=.*\&bid/g, 'bid').replace(/pbver=.*?&/g, 'pbver=test&');
-      expect(data).to.equal('_f=auto&alternative=prebid_js&inventory_item_id=107&srw=300&srh=250&idt=100&bid_id=30b31c1838de1e4&pbver=test&pfilter%5Btest%5D=1&pfilter%5Bgdpr_consent%5D=BOJ%2FP2HOJ%2FP2HABABMAAAAAZ%2BA%3D%3D&pfilter%5Bgdpr%5D=true&pfilter%5Biab_content%5D=cat%3AIAB1-1%7CIAB1-2%7CIAB2-10%2Cepisode%3A1%2Ccontext%3A1%2Cid%3AcontentID%2Ctitle%3AcontentTitle%2Cseries%3AcontentSeries%2Cseason%3AcontentSeason%25203%2Cartist%3AcontentArtist%2Cgenre%3Arock%2Cisrc%3AcontentIsrc%2Curl%3Ahttps%253A%252F%252Fcontent-url.com%252F%2Ckeywords%3Akw1%252Ckw2%252Ckeqword%25203&prebidDevMode=1&auctionId=1d1a030790a478&pbcode=testDiv3&media_types%5Bvideo%5D=640x480&media_types%5Bbanner%5D=300x250&vctx=instream&vpl%5Bmimes%5D%5B0%5D=video%2Fmp4&vpl%5Bprotocols%5D%5B0%5D=1&vpl%5Bprotocols%5D%5B1%5D=2&vpl%5Bplaybackmethod%5D%5B0%5D=2&vpl%5Bskip%5D=1');
+      expect(data).to.equal('_f=auto&alternative=prebid_js&inventory_item_id=107&srw=300&srh=250&idt=100&bid_id=30b31c1838de1e4&pbver=test&pfilter%5Btest%5D=1&pfilter%5Bgdpr_consent%5D=BOJ%2FP2HOJ%2FP2HABABMAAAAAZ%2BA%3D%3D&pfilter%5Bgdpr%5D=true&pfilter%5Biab_content%5D=cat%3AIAB1-1%7CIAB1-2%7CIAB2-10%2Cepisode%3A1%2Ccontext%3A1%2Cid%3AcontentID%2Ctitle%3AcontentTitle%2Cseries%3AcontentSeries%2Cseason%3AcontentSeason%25203%2Cartist%3AcontentArtist%2Cgenre%3Arock%2Cisrc%3AcontentIsrc%2Curl%3Ahttps%253A%252F%252Fcontent-url.com%252F%2Ckeywords%3Akw1%252Ckw2%252Ckeqword%25203&bcat=BSW1%2CBSW2&pcat=IAB3&prebidDevMode=1&auctionId=1d1a030790a478&pbcode=testDiv3&media_types%5Bvideo%5D=640x480&media_types%5Bbanner%5D=300x250&vctx=instream&vpl%5Bmimes%5D%5B0%5D=video%2Fmp4&vpl%5Bprotocols%5D%5B0%5D=1&vpl%5Bprotocols%5D%5B1%5D=2&vpl%5Bplaybackmethod%5D%5B0%5D=2&vpl%5Bskip%5D=1');
     });
 
     // bidfloor tests
