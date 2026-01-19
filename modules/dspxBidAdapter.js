@@ -1,6 +1,7 @@
 import {deepAccess, logMessage, getBidIdParameter, logError, logWarn} from '../src/utils.js';
 import {registerBidder} from '../src/adapters/bidderFactory.js';
 import {BANNER, VIDEO} from '../src/mediaTypes.js';
+import { getViewportSize } from '../libraries/viewport/viewport.js'
 
 import {
   fillUsersIds,
@@ -65,6 +66,7 @@ export const spec = {
       const mediaTypesInfo = getMediaTypesInfo(bidRequest);
       const type = isBannerRequest(bidRequest) ? BANNER : VIDEO;
       const sizes = mediaTypesInfo[type];
+      const { width: vpWidth, height: vpHeight } = getViewportSize();
 
       payload = {
         _f: 'auto',
@@ -72,6 +74,8 @@ export const spec = {
         inventory_item_id: placementId,
         srw: sizes ? sizes[0].width : 0,
         srh: sizes ? sizes[0].height : 0,
+        vpw: vpWidth,
+        vph: vpHeight,
         idt: 100,
         rnd: rnd,
         ref: referrer,

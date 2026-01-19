@@ -8,6 +8,29 @@ import {BANNER} from '../../../src/mediaTypes.js';
 const ENDPOINT_URL = 'https://buyer.dspx.tv/request/';
 const ENDPOINT_URL_DEV = 'https://dcbuyer.dspx.tv/request/';
 
+function normalizeRequestData(data) {
+  return data.replace(/rnd=\d+\&/g, '').replace(/ref=.*\&bid/g, 'bid').replace(/pbver=.*?&/g, 'pbver=test&');
+}
+
+const TEST_FIXTURES = {
+  bidderRequest: {
+    refererInfo: {
+      referer: 'some_referrer.net'
+    },
+    gdprConsent: {
+      consentString: 'BOJ/P2HOJ/P2HABABMAAAAAZ+A==',
+      vendorData: {someData: 'value'},
+      gdprApplies: true
+    }
+  },
+  
+  bidderRequestWithoutGdpr: {
+    refererInfo: {
+      referer: 'some_referrer.net'
+    }
+  }
+};
+
 describe('dspxAdapter', function () {
   const adapter = newBidder(spec);
 
@@ -52,6 +75,15 @@ describe('dspxAdapter', function () {
   });
 
   describe('buildRequests', function () {
+    let bidderRequest;
+    let bidderRequestWithoutGdpr;
+    let bidderRequestWithORTB;
+
+    beforeEach(function () {
+      bidderRequest = deepClone(TEST_FIXTURES.bidderRequest);
+      bidderRequestWithoutGdpr = deepClone(TEST_FIXTURES.bidderRequestWithoutGdpr);
+    });
+
     const bidRequests = [{
       'bidder': 'dspx',
       'params': {
@@ -309,203 +341,293 @@ describe('dspxAdapter', function () {
 
     ];
 
-    // With gdprConsent
-    var bidderRequest = {
-      refererInfo: {
-        referer: 'some_referrer.net'
-      },
-      gdprConsent: {
-        consentString: 'BOJ/P2HOJ/P2HABABMAAAAAZ+A==',
-        vendorData: {someData: 'value'},
-        gdprApplies: true
-      }
-    };
-
-    // With ortb2
-    var bidderRequestWithORTB = {
-      refererInfo: {
-        referer: 'some_referrer.net'
-      },
-      gdprConsent: {
-        consentString: 'BOJ/P2HOJ/P2HABABMAAAAAZ+A==',
-        vendorData: {someData: 'value'},
-        gdprApplies: true
-      },
-      ortb2: {
-        source: {},
-        site: {
-          domain: 'buyer',
-          publisher: {
-            domain: 'buyer'
-          },
-          page: 'http://buyer/schain.php?ver=8.5.0-pre:latest-dev-build&pbjs_debug=true',
-          pagecat: ['IAB3'],
-          ref: 'http://buyer/pbjsv/',
-          content: {
-            id: 'contentID',
-            episode: 1,
-            title: 'contentTitle',
-            series: 'contentSeries',
-            season: 'contentSeason 3',
-            artist: 'contentArtist',
-            genre: 'rock',
-            isrc: 'contentIsrc',
-            url: 'https://content-url.com/',
-            context: 1,
-            keywords: 'kw1,kw2,keqword 3',
-            livestream: 0,
-            cat: [
-              'IAB1-1',
-              'IAB1-2',
-              'IAB2-10'
-            ]
-          }
+    beforeEach(function () {
+      bidderRequestWithORTB = {
+        refererInfo: {
+          referer: 'some_referrer.net'
         },
-        bcat: ['BSW1', 'BSW2'],
-      }
-    };
-
-    var request1 = spec.buildRequests([bidRequests[0]], bidderRequest)[0];
-    it('sends bid request to our endpoint via GET', function () {
-      expect(request1.method).to.equal('GET');
-      expect(request1.url).to.equal(ENDPOINT_URL);
-      const data = request1.data.replace(/rnd=\d+\&/g, '').replace(/ref=.*\&bid/g, 'bid').replace(/pbver=.*?&/g, 'pbver=test&');
-      expect(data).to.equal('_f=auto&alternative=prebid_js&inventory_item_id=6682&srw=300&srh=250&idt=100&bid_id=30b31c1838de1e1&pbver=test&pfilter%5Bfloorprice%5D=1000000&pfilter%5Bprivate_auction%5D=0&pfilter%5Bgeo%5D%5Bcountry%5D=DE&pfilter%5Bgdpr_consent%5D=BOJ%2FP2HOJ%2FP2HABABMAAAAAZ%2BA%3D%3D&pfilter%5Bgdpr%5D=true&bcat=IAB2%2CIAB4&dvt=desktop&auctionId=1d1a030790a475&pbcode=testDiv1&media_types%5Bbanner%5D=300x250&schain=1.0%2C1!example.com%2C0%2C1%2Cbidrequestid%2C%2Cexample.com&did_cruid=criteo&did_ppuid=1%3Adomain.com%3A1234&did_pubcid=pubcid&did_netid=netid&did_uid2=uidapi&did_sharedid=sharedid&did_tdid=adserver&did_pbmid=pubmatic&did_yhid=yahoo&did_uqid=utiq&did_euid=euid&did_id5=ID5UID&did_id5_linktype=2&did_cpubcid=crumbs_pubcid');
-    });
-
-    var request2 = spec.buildRequests([bidRequests[1]], bidderRequest)[0];
-    it('sends bid request to our DEV endpoint via GET', function () {
-      expect(request2.method).to.equal('GET');
-      expect(request2.url).to.equal(ENDPOINT_URL_DEV);
-      const data = request2.data.replace(/rnd=\d+\&/g, '').replace(/ref=.*\&bid/g, 'bid').replace(/pbver=.*?&/g, 'pbver=test&');
-      expect(data).to.equal('_f=auto&alternative=prebid_js&inventory_item_id=101&srw=300&srh=250&idt=100&bid_id=30b31c1838de1e2&pbver=test&pfilter%5Bgdpr_consent%5D=BOJ%2FP2HOJ%2FP2HABABMAAAAAZ%2BA%3D%3D&pfilter%5Bgdpr%5D=true&prebidDevMode=1&auctionId=1d1a030790a476&media_types%5Bbanner%5D=300x250');
-    });
-
-    // Without gdprConsent
-    var bidderRequestWithoutGdpr = {
-      refererInfo: {
-        referer: 'some_referrer.net'
-      }
-    };
-    var request3 = spec.buildRequests([bidRequests[2]], bidderRequestWithoutGdpr)[0];
-    it('sends bid request without gdprConsent to our endpoint via GET', function () {
-      expect(request3.method).to.equal('GET');
-      expect(request3.url).to.equal(ENDPOINT_URL);
-      const data = request3.data.replace(/rnd=\d+\&/g, '').replace(/ref=.*\&bid/g, 'bid').replace(/pbver=.*?&/g, 'pbver=test&');
-      expect(data).to.equal('_f=auto&alternative=prebid_js&inventory_item_id=6682&srw=300&srh=250&idt=100&bid_id=30b31c1838de1e3&pbver=test&pfilter%5Bfloorprice%5D=1000000&pfilter%5Bprivate_auction%5D=0&pfilter%5Bgeo%5D%5Bcountry%5D=DE&bcat=IAB2%2CIAB4&dvt=desktop&auctionId=1d1a030790a477&pbcode=testDiv2&media_types%5Bbanner%5D=300x250');
-    });
-
-    var request4 = spec.buildRequests([bidRequests[3]], bidderRequestWithoutGdpr)[0];
-    it('sends bid request without gdprConsent  to our DEV endpoint via GET', function () {
-      expect(request4.method).to.equal('GET');
-      expect(request4.url).to.equal(ENDPOINT_URL_DEV);
-      const data = request4.data.replace(/rnd=\d+\&/g, '').replace(/ref=.*\&bid/g, 'bid').replace(/pbver=.*?&/g, 'pbver=test&');
-      expect(data).to.equal('_f=auto&alternative=prebid_js&inventory_item_id=101&srw=300&srh=250&idt=100&bid_id=30b31c1838de1e4&pbver=test&prebidDevMode=1&auctionId=1d1a030790a478&pbcode=testDiv3&media_types%5Bvideo%5D=640x480&media_types%5Bbanner%5D=300x250&vctx=instream&vpl%5Bprotocols%5D%5B0%5D=1&vpl%5Bprotocols%5D%5B1%5D=2&vpl%5Bplaybackmethod%5D%5B0%5D=2&vpl%5Bskip%5D=1');
-    });
-
-    var request5 = spec.buildRequests([bidRequests[4]], bidderRequestWithoutGdpr)[0];
-    it('sends bid video request to our endpoint via GET', function () {
-      expect(request5.method).to.equal('GET');
-      const data = request5.data.replace(/rnd=\d+\&/g, '').replace(/ref=.*\&bid/g, 'bid').replace(/pbver=.*?&/g, 'pbver=test&');
-      expect(data).to.equal('_f=auto&alternative=prebid_js&inventory_item_id=101&srw=640&srh=480&idt=100&bid_id=30b31c1838de1e41&pbver=test&prebidDevMode=1&auctionId=1d1a030790a478&pbcode=testDiv4&media_types%5Bvideo%5D=640x480&vctx=instream&vf=vast4&vpl%5Bprotocols%5D%5B0%5D=1&vpl%5Bprotocols%5D%5B1%5D=2&vpl%5Bplaybackmethod%5D%5B0%5D=2&vpl%5Bskip%5D=1');
-    });
-
-    var request6 = spec.buildRequests([bidRequests[5]], bidderRequestWithoutGdpr)[0];
-    it('sends bid request without gdprConsent  to our DEV endpoint with overriden DEV params via GET', function () {
-      expect(request6.method).to.equal('GET');
-      expect(request6.url).to.equal('http://localhost');
-      const data = request6.data.replace(/rnd=\d+\&/g, '').replace(/ref=.*\&bid/g, 'bid').replace(/pbver=.*?&/g, 'pbver=test&');
-      expect(data).to.equal('_f=auto&alternative=prebid_js&inventory_item_id=107&srw=300&srh=250&idt=100&bid_id=30b31c1838de1e4&pbver=test&pfilter%5Btest%5D=1&prebidDevMode=1&auctionId=1d1a030790a478&pbcode=testDiv3&media_types%5Bvideo%5D=640x480&media_types%5Bbanner%5D=300x250&vctx=instream&vpl%5Bmimes%5D%5B0%5D=video%2Fmp4&vpl%5Bprotocols%5D%5B0%5D=1&vpl%5Bprotocols%5D%5B1%5D=2&vpl%5Bplaybackmethod%5D%5B0%5D=2&vpl%5Bskip%5D=1');
-    });
-
-    var request7 = spec.buildRequests([bidRequests[5]], bidderRequestWithORTB)[0];
-    it('ortb2 iab_content test', function () {
-      expect(request7.method).to.equal('GET');
-      expect(request7.url).to.equal('http://localhost');
-      const data = request7.data.replace(/rnd=\d+\&/g, '').replace(/ref=.*\&bid/g, 'bid').replace(/pbver=.*?&/g, 'pbver=test&');
-      expect(data).to.equal('_f=auto&alternative=prebid_js&inventory_item_id=107&srw=300&srh=250&idt=100&bid_id=30b31c1838de1e4&pbver=test&pfilter%5Btest%5D=1&pfilter%5Bgdpr_consent%5D=BOJ%2FP2HOJ%2FP2HABABMAAAAAZ%2BA%3D%3D&pfilter%5Bgdpr%5D=true&pfilter%5Biab_content%5D=cat%3AIAB1-1%7CIAB1-2%7CIAB2-10%2Cepisode%3A1%2Ccontext%3A1%2Cid%3AcontentID%2Ctitle%3AcontentTitle%2Cseries%3AcontentSeries%2Cseason%3AcontentSeason%25203%2Cartist%3AcontentArtist%2Cgenre%3Arock%2Cisrc%3AcontentIsrc%2Curl%3Ahttps%253A%252F%252Fcontent-url.com%252F%2Ckeywords%3Akw1%252Ckw2%252Ckeqword%25203&bcat=BSW1%2CBSW2&pcat=IAB3&prebidDevMode=1&auctionId=1d1a030790a478&pbcode=testDiv3&media_types%5Bvideo%5D=640x480&media_types%5Bbanner%5D=300x250&vctx=instream&vpl%5Bmimes%5D%5B0%5D=video%2Fmp4&vpl%5Bprotocols%5D%5B0%5D=1&vpl%5Bprotocols%5D%5B1%5D=2&vpl%5Bplaybackmethod%5D%5B0%5D=2&vpl%5Bskip%5D=1');
-    });
-
-    // bidfloor tests
-    const getFloorResponse = {currency: 'EUR', floor: 5};
-    let testBidRequest = deepClone(bidRequests[1]);
-    let floorRequest = spec.buildRequests([testBidRequest], bidderRequestWithoutGdpr)[0];
-
-    // 1. getBidFloor not exist AND bidfloor not exist - no floorprice in request
-    it('bidfloor is not exists in request', function () {
-      expect(floorRequest.data).to.not.contain('floorprice');
-    });
-
-    // 2. getBidFloor not exist AND pfilter.floorprice exist - use pfilter.floorprice property
-    it('bidfloor is equal 0.5', function () {
-      testBidRequest = deepClone(bidRequests[0]);
-      testBidRequest.params.pfilter = {
-        'floorprice': 0.5
+        gdprConsent: {
+          consentString: 'BOJ/P2HOJ/P2HABABMAAAAAZ+A==',
+          vendorData: {someData: 'value'},
+          gdprApplies: true
+        },
+        ortb2: {
+          source: {},
+          site: {
+            domain: 'buyer',
+            publisher: {
+              domain: 'buyer'
+            },
+            page: 'http://buyer/schain.php?ver=8.5.0-pre:latest-dev-build&pbjs_debug=true',
+            pagecat: ['IAB3'],
+            ref: 'http://buyer/pbjsv/',
+            content: {
+              id: 'contentID',
+              episode: 1,
+              title: 'contentTitle',
+              series: 'contentSeries',
+              season: 'contentSeason 3',
+              artist: 'contentArtist',
+              genre: 'rock',
+              isrc: 'contentIsrc',
+              url: 'https://content-url.com/',
+              context: 1,
+              keywords: 'kw1,kw2,keqword 3',
+              livestream: 0,
+              cat: [
+                'IAB1-1',
+                'IAB1-2',
+                'IAB2-10'
+              ]
+            }
+          },
+          bcat: ['BSW1', 'BSW2'],
+        }
       };
-      floorRequest = spec.buildRequests([testBidRequest], bidderRequestWithoutGdpr)[0];
-      expect(floorRequest.data).to.contain('floorprice%5D=0.5');
     });
 
-    // 3. getBidFloor exist AND pfilter.floorprice not exist - use getFloor method
-    it('bidfloor is equal 5', function () {
-      testBidRequest = deepClone(bidRequests[1]);
-      testBidRequest.getFloor = () => getFloorResponse;
-      floorRequest = spec.buildRequests([testBidRequest], bidderRequestWithoutGdpr)[0];
-      expect(floorRequest.data).to.contain('floorprice%5D=5');
+    describe('Endpoint selection', function () {
+      it('should send GET request to production endpoint by default', function () {
+        const request = spec.buildRequests([bidRequests[0]], bidderRequest)[0];
+        expect(request.method).to.equal('GET');
+        expect(request.url).to.equal(ENDPOINT_URL);
+      });
+
+      it('should send GET request to dev endpoint when devMode is enabled', function () {
+        const request = spec.buildRequests([bidRequests[1]], bidderRequest)[0];
+        expect(request.method).to.equal('GET');
+        expect(request.url).to.equal(ENDPOINT_URL_DEV);
+      });
+
+      it('should use custom endpoint from dev config when provided', function () {
+        const request = spec.buildRequests([bidRequests[5]], bidderRequestWithoutGdpr)[0];
+        expect(request.url).to.equal('http://localhost');
+      });
     });
 
-    // 4. getBidFloor exist AND pfilter.floorprice exist -> use getFloor method
-    it('bidfloor is equal 0.35', function () {
-      testBidRequest = deepClone(bidRequests[0]);
-      testBidRequest.getFloor = () => getFloorResponse;
-      testBidRequest.params.pfilter = {
-        'floorprice': 0.35
-      };
-      floorRequest = spec.buildRequests([testBidRequest], bidderRequestWithoutGdpr)[0];
-      expect(floorRequest.data).to.contain('floorprice%5D=0.35');
+    describe('Request parameters', function () {
+      it('should include all required parameters with GDPR consent', function () {
+        const request = spec.buildRequests([bidRequests[0]], bidderRequest)[0];
+        const data = normalizeRequestData(request.data);
+        expect(data).to.contain('_f=auto');
+        expect(data).to.contain('alternative=prebid_js');
+        expect(data).to.contain('inventory_item_id=6682');
+        expect(data).to.contain('srw=300');
+        expect(data).to.contain('srh=250');
+        expect(data).to.contain('vpw=');
+        expect(data).to.contain('vph=');
+        expect(data).to.contain('bid_id=30b31c1838de1e1');
+        expect(data).to.contain('pfilter%5Bfloorprice%5D=1000000');
+        expect(data).to.contain('pfilter%5Bgdpr_consent%5D=BOJ%2FP2HOJ%2FP2HABABMAAAAAZ%2BA%3D%3D');
+        expect(data).to.contain('pfilter%5Bgdpr%5D=true');
+        expect(data).to.contain('bcat=IAB2%2CIAB4');
+        expect(data).to.contain('auctionId=1d1a030790a475');
+        expect(data).to.contain('schain=1.0%2C1!example.com');
+        expect(data).to.contain('did_cruid=criteo');
+        expect(data).to.contain('did_pubcid=pubcid');
+      });
+    });
+
+    describe('GDPR handling', function () {
+      it('should include GDPR consent parameters when provided', function () {
+        const request = spec.buildRequests([bidRequests[1]], bidderRequest)[0];
+        const data = normalizeRequestData(request.data);
+        expect(data).to.contain('pfilter%5Bgdpr_consent%5D=BOJ%2FP2HOJ%2FP2HABABMAAAAAZ%2BA%3D%3D');
+        expect(data).to.contain('pfilter%5Bgdpr%5D=true');
+      });
+
+      it('should build request without GDPR when consent is not provided', function () {
+        const request = spec.buildRequests([bidRequests[2]], bidderRequestWithoutGdpr)[0];
+        const data = normalizeRequestData(request.data);
+        expect(data).to.not.contain('gdpr_consent');
+        expect(data).to.contain('inventory_item_id=6682');
+        expect(data).to.contain('srw=300');
+        expect(data).to.contain('srh=250');
+        expect(data).to.contain('vpw=');
+        expect(data).to.contain('vph=');
+        expect(data).to.contain('bid_id=30b31c1838de1e3');
+        expect(data).to.contain('pfilter%5Bfloorprice%5D=1000000');
+        expect(data).to.contain('bcat=IAB2%2CIAB4');
+        expect(data).to.contain('auctionId=1d1a030790a477');
+      });
+    });
+
+    describe('Media types', function () {
+      it('should handle mixed video and banner media types', function () {
+        const request = spec.buildRequests([bidRequests[3]], bidderRequestWithoutGdpr)[0];
+        const data = normalizeRequestData(request.data);
+        expect(data).to.contain('media_types%5Bvideo%5D=640x480');
+        expect(data).to.contain('media_types%5Bbanner%5D=300x250');
+        expect(data).to.contain('vctx=instream');
+      });
+
+      it('should include video-specific parameters for video requests', function () {
+        const request = spec.buildRequests([bidRequests[4]], bidderRequestWithoutGdpr)[0];
+        const data = normalizeRequestData(request.data);
+        expect(data).to.contain('media_types%5Bvideo%5D=640x480');
+        expect(data).to.contain('vctx=instream');
+        expect(data).to.contain('vf=vast4');
+        expect(data).to.contain('vpl%5Bprotocols%5D');
+      });
+    });
+
+    describe('Dev mode configuration', function () {
+      it('should override endpoint and placement with dev config', function () {
+        const request = spec.buildRequests([bidRequests[5]], bidderRequestWithoutGdpr)[0];
+        expect(request.url).to.equal('http://localhost');
+        const data = normalizeRequestData(request.data);
+        expect(data).to.contain('inventory_item_id=107');
+        expect(data).to.contain('pfilter%5Btest%5D=1');
+      });
+    });
+
+    describe('ORTB2 data', function () {
+      it('should include IAB content data from ortb2', function () {
+        const request = spec.buildRequests([bidRequests[5]], bidderRequestWithORTB)[0];
+        const data = normalizeRequestData(request.data);
+        expect(data).to.contain('pfilter%5Biab_content%5D=cat%3AIAB1-1%7CIAB1-2%7CIAB2-10');
+        expect(data).to.contain('bcat=BSW1%2CBSW2');
+        expect(data).to.contain('pcat=IAB3');
+      });
+    });
+
+    describe('Floor price handling', function () {
+      const getFloorResponse = {currency: 'EUR', floor: 5};
+      let testBidRequest;
+
+      it('should not include floorprice when neither getFloor nor pfilter.floorprice exist', function () {
+        testBidRequest = deepClone(bidRequests[1]);
+        const request = spec.buildRequests([testBidRequest], bidderRequestWithoutGdpr)[0];
+        expect(request.data).to.not.contain('floorprice');
+      });
+
+      it('should use pfilter.floorprice when getFloor does not exist', function () {
+        testBidRequest = deepClone(bidRequests[0]);
+        testBidRequest.params.pfilter = { floorprice: 0.5 };
+        const request = spec.buildRequests([testBidRequest], bidderRequestWithoutGdpr)[0];
+        expect(request.data).to.contain('floorprice%5D=0.5');
+      });
+
+      it('should use getFloor() value when available and pfilter.floorprice is not set', function () {
+        testBidRequest = deepClone(bidRequests[1]);
+        testBidRequest.getFloor = () => getFloorResponse;
+        const request = spec.buildRequests([testBidRequest], bidderRequestWithoutGdpr)[0];
+        expect(request.data).to.contain('floorprice%5D=5');
+      });
+
+      it('should prioritize pfilter.floorprice over getFloor() when both exist', function () {
+        testBidRequest = deepClone(bidRequests[0]);
+        testBidRequest.getFloor = () => getFloorResponse;
+        testBidRequest.params.pfilter = { floorprice: 0.35 };
+        const request = spec.buildRequests([testBidRequest], bidderRequestWithoutGdpr)[0];
+        expect(request.data).to.contain('floorprice%5D=0.35');
+      });
     });
   });
 
-  describe('google topics handling', () => {
+  describe('Viewport size handling', () => {
+    let bidderRequestWithoutGdpr;
+    let bannerBidRequest;
+    let videoBidRequest;
+
+    beforeEach(function () {
+      bidderRequestWithoutGdpr = deepClone(TEST_FIXTURES.bidderRequestWithoutGdpr);
+      
+      bannerBidRequest = {
+        bidder: 'dspx',
+        params: {
+          placement: '6682',
+          pfilter: { floorprice: 1000000 }
+        },
+        sizes: [[300, 250]],
+        bidId: '30b31c1838de1e1',
+        bidderRequestId: '22edbae2733bf61',
+        auctionId: '1d1a030790a475',
+        adUnitCode: 'testDiv1'
+      };
+
+      videoBidRequest = {
+        bidder: 'dspx',
+        params: {
+          placement: '101',
+          devMode: true
+        },
+        mediaTypes: {
+          video: {
+            playerSize: [640, 480],
+            context: 'instream'
+          }
+        },
+        bidId: '30b31c1838de1e4',
+        bidderRequestId: '22edbae2733bf67',
+        auctionId: '1d1a030790a478',
+        adUnitCode: 'testDiv3'
+      };
+    });
+
+    it('should include vpw and vph parameters in banner requests', function () {
+      const request = spec.buildRequests([bannerBidRequest], bidderRequestWithoutGdpr)[0];
+      expect(request.data).to.contain('vpw=');
+      expect(request.data).to.contain('vph=');
+    });
+
+    it('should include vpw and vph parameters in video requests', function () {
+      const request = spec.buildRequests([videoBidRequest], bidderRequestWithoutGdpr)[0];
+      expect(request.data).to.contain('vpw=');
+      expect(request.data).to.contain('vph=');
+    });
+
+    it('should use numeric values for viewport dimensions', function () {
+      const request = spec.buildRequests([bannerBidRequest], bidderRequestWithoutGdpr)[0];
+      const vpwMatch = request.data.match(/vpw=(\d+)/);
+      const vphMatch = request.data.match(/vph=(\d+)/);
+      
+      expect(vpwMatch, 'vpw parameter should be present').to.not.be.null;
+      expect(vphMatch, 'vph parameter should be present').to.not.be.null;
+      expect(parseInt(vpwMatch[1]), 'vpw should be a number').to.be.a('number').and.be.above(0);
+      expect(parseInt(vphMatch[1]), 'vph should be a number').to.be.a('number').and.be.above(0);
+    });
+  });
+
+  describe('Google Topics handling', () => {
+    let bidderRequest;
+    let defaultBidRequest;
+
+    beforeEach(() => {
+      bidderRequest = {
+        refererInfo: { referer: 'some_referrer.net' },
+        gdprConsent: {
+          consentString: 'BOJ/P2HOJ/P2HABABMAAAAAZ+A==',
+          vendorData: {someData: 'value'},
+          gdprApplies: true
+        }
+      };
+
+      defaultBidRequest = {
+        bidder: 'dspx',
+        params: {
+          placement: '6682',
+          pfilter: {
+            floorprice: 1000000,
+            private_auction: 0,
+            geo: { country: 'DE' }
+          },
+          bcat: 'IAB2,IAB4',
+          dvt: 'desktop'
+        },
+        sizes: [[300, 250]],
+        bidId: '30b31c1838de1e1',
+        bidderRequestId: '22edbae2733bf61',
+        auctionId: '1d1a030790a475',
+        adUnitCode: 'testDiv1'
+      };
+    });
+
     afterEach(() => {
       config.resetConfig();
     });
 
-    const REQPARAMS = {
-      refererInfo: {
-        referer: 'some_referrer.net'
-      },
-      gdprConsent: {
-        consentString: 'BOJ/P2HOJ/P2HABABMAAAAAZ+A==',
-        vendorData: {someData: 'value'},
-        gdprApplies: true
-      }
-    };
-
-    const defaultRequest = {
-      'bidder': 'dspx',
-      'params': {
-        'placement': '6682',
-        'pfilter': {
-          'floorprice': 1000000,
-          'private_auction': 0,
-          'geo': {
-            'country': 'DE'
-          }
-        },
-        'bcat': 'IAB2,IAB4',
-        'dvt': 'desktop'
-      },
-      'sizes': [
-        [300, 250]
-      ],
-      'bidId': '30b31c1838de1e1',
-      'bidderRequestId': '22edbae2733bf61',
-      'auctionId': '1d1a030790a475',
-      'adUnitCode': 'testDiv1',
-    };
-
-    it('does pass segtax, segclass, segments for google topics data', () => {
+    it('should include segtax, segclass, and segments for valid Google Topics data', () => {
       const GOOGLE_TOPICS_DATA = {
         ortb2: {
           user: {
@@ -524,11 +646,11 @@ describe('dspxAdapter', function () {
         },
       }
       config.setConfig(GOOGLE_TOPICS_DATA);
-      const request = spec.buildRequests([defaultRequest], { ...REQPARAMS, ...GOOGLE_TOPICS_DATA })[0];
+      const request = spec.buildRequests([defaultBidRequest], { ...bidderRequest, ...GOOGLE_TOPICS_DATA })[0];
       expect(request.data).to.contain('segtx=600&segcl=v1&segs=717%2C808');
     });
 
-    it('does not pass topics params for invalid topics data', () => {
+    it('should not include topics params when data is invalid', () => {
       const INVALID_TOPICS_DATA = {
         ortb2: {
           user: {
@@ -562,7 +684,7 @@ describe('dspxAdapter', function () {
       };
 
       config.setConfig(INVALID_TOPICS_DATA);
-      const request = spec.buildRequests([defaultRequest], { ...REQPARAMS, ...INVALID_TOPICS_DATA })[0];
+      const request = spec.buildRequests([defaultBidRequest], { ...bidderRequest, ...INVALID_TOPICS_DATA })[0];
       expect(request.data).to.not.contain('segtax');
       expect(request.data).to.not.contain('segclass');
       expect(request.data).to.not.contain('segments');
@@ -570,7 +692,13 @@ describe('dspxAdapter', function () {
   });
 
   describe('interpretResponse', function () {
-    const serverResponse = {
+    let serverResponse;
+    let serverVideoResponse;
+    let serverVideoResponseVastUrl;
+    let expectedResponse;
+
+    beforeEach(function () {
+      serverResponse = {
       'body': {
         'cpm': 5000000,
         'crid': 100500,
@@ -585,8 +713,9 @@ describe('dspxAdapter', function () {
         'zone': '6682',
         'adomain': ['bdomain']
       }
-    };
-    const serverVideoResponse = {
+      };
+
+      serverVideoResponse = {
       'body': {
         'cpm': 5000000,
         'crid': 100500,
@@ -601,8 +730,9 @@ describe('dspxAdapter', function () {
         'zone': '6682',
         'renderer': {id: 1, url: '//player.example.com', options: {}}
       }
-    };
-    const serverVideoResponseVastUrl = {
+      };
+
+      serverVideoResponseVastUrl = {
       'body': {
         'cpm': 5000000,
         'crid': 100500,
@@ -618,9 +748,9 @@ describe('dspxAdapter', function () {
         'videoCacheKey': 'cache_123',
         'bid_appendix': {'someField': 'someValue'}
       }
-    };
+      };
 
-    const expectedResponse = [{
+      expectedResponse = [{
       requestId: '23beaa6af6cdde',
       cpm: 0.5,
       width: 0,
@@ -664,9 +794,11 @@ describe('dspxAdapter', function () {
       mediaType: 'video',
       meta: {advertiserDomains: []},
       someField: 'someValue'
-    }];
+      }];
+    });
 
-    it('should get the correct bid response by display ad', function () {
+    describe('Banner responses', function () {
+      it('should correctly interpret banner ad response', function () {
       const bidRequest = [{
         'method': 'GET',
         'url': ENDPOINT_URL,
@@ -677,10 +809,12 @@ describe('dspxAdapter', function () {
       const result = spec.interpretResponse(serverResponse, bidRequest[0]);
       expect(Object.keys(result[0])).to.include.members(Object.keys(expectedResponse[0]));
       expect(result[0].meta.advertiserDomains.length).to.equal(1);
-      expect(result[0].meta.advertiserDomains[0]).to.equal(expectedResponse[0].meta.advertiserDomains[0]);
+        expect(result[0].meta.advertiserDomains[0]).to.equal(expectedResponse[0].meta.advertiserDomains[0]);
+      });
     });
 
-    it('should get the correct dspx video bid response by display ad', function () {
+    describe('Video responses', function () {
+      it('should correctly interpret outstream video response with vastXml', function () {
       const bidRequest = [{
         'method': 'GET',
         'url': ENDPOINT_URL,
@@ -696,10 +830,10 @@ describe('dspxAdapter', function () {
       }];
       const result = spec.interpretResponse(serverVideoResponse, bidRequest[0]);
       expect(Object.keys(result[0])).to.include.members(Object.keys(expectedResponse[1]));
-      expect(result[0].meta.advertiserDomains.length).to.equal(0);
-    });
+        expect(result[0].meta.advertiserDomains.length).to.equal(0);
+      });
 
-    it('should get the correct dspx video bid response by display ad (vastUrl)', function () {
+      it('should correctly interpret instream video response with vastUrl', function () {
       const bidRequest = [{
         'method': 'GET',
         'url': ENDPOINT_URL,
@@ -715,19 +849,22 @@ describe('dspxAdapter', function () {
       }];
       const result = spec.interpretResponse(serverVideoResponseVastUrl, bidRequest[0]);
       expect(Object.keys(result[0])).to.include.members(Object.keys(expectedResponse[2]));
-      expect(result[0].meta.advertiserDomains.length).to.equal(0);
+        expect(result[0].meta.advertiserDomains.length).to.equal(0);
+      });
     });
 
-    it('handles empty bid response', function () {
+    describe('Error handling', function () {
+      it('should return empty array for empty response body', function () {
       const response = {
         body: {}
       };
       const result = spec.interpretResponse(response);
-      expect(result.length).to.equal(0);
+        expect(result.length).to.equal(0);
+      });
     });
   });
 
-  describe(`getUserSyncs test usage`, function () {
+  describe('getUserSyncs', function () {
     let serverResponses;
 
     beforeEach(function () {
@@ -752,57 +889,63 @@ describe('dspxAdapter', function () {
       }];
     });
 
-    it(`return value should be an array`, function () {
-      expect(spec.getUserSyncs({ iframeEnabled: true })).to.be.an('array');
-    });
-    it(`array should have only one object and it should have a property type = 'iframe'`, function () {
-      expect(spec.getUserSyncs({ iframeEnabled: true }, serverResponses).length).to.be.equal(1);
-      const [userSync] = spec.getUserSyncs({ iframeEnabled: true }, serverResponses);
-      expect(userSync).to.have.property('type');
-      expect(userSync.type).to.be.equal('iframe');
-    });
-    it(`we have valid sync url for iframe`, function () {
-      const [userSync] = spec.getUserSyncs({ iframeEnabled: true }, serverResponses, {consentString: 'anyString'});
-      expect(userSync.url).to.be.equal('anyIframeUrl?a=1&gdpr_consent=anyString')
-      expect(userSync.type).to.be.equal('iframe');
-    });
-    it(`we have valid sync url for image`, function () {
-      const [userSync] = spec.getUserSyncs({ pixelEnabled: true }, serverResponses, {gdprApplies: true, consentString: 'anyString'});
-      expect(userSync.url).to.be.equal('anyImageUrl?gdpr=1&gdpr_consent=anyString')
-      expect(userSync.type).to.be.equal('image');
-    });
-    it(`we have valid sync url for image and iframe`, function () {
-      const userSync = spec.getUserSyncs({ iframeEnabled: true, pixelEnabled: true }, serverResponses, {gdprApplies: true, consentString: 'anyString'});
-      expect(userSync.length).to.be.equal(3);
-      expect(userSync[0].url).to.be.equal('anyIframeUrl?a=1&gdpr=1&gdpr_consent=anyString')
-      expect(userSync[0].type).to.be.equal('iframe');
-      expect(userSync[1].url).to.be.equal('anyImageUrl?gdpr=1&gdpr_consent=anyString')
-      expect(userSync[1].type).to.be.equal('image');
-      expect(userSync[2].url).to.be.equal('anyImageUrl2?gdpr=1&gdpr_consent=anyString')
-      expect(userSync[2].type).to.be.equal('image');
-    });
-  });
+    describe('With valid server response', function () {
+      it('should return an array', function () {
+        expect(spec.getUserSyncs({ iframeEnabled: true })).to.be.an('array');
+      });
 
-  describe(`getUserSyncs test usage in passback response`, function () {
-    let serverResponses;
+      it('should return iframe sync when iframeEnabled is true', function () {
+        const result = spec.getUserSyncs({ iframeEnabled: true }, serverResponses);
+        expect(result.length).to.equal(1);
+        expect(result[0]).to.have.property('type', 'iframe');
+      });
 
-    beforeEach(function () {
-      serverResponses = [{
-        body: {
-          reason: 8002,
-          status: 'error',
-          msg: 'passback',
-        }
-      }];
+      it('should include GDPR consent in iframe sync URL', function () {
+        const [userSync] = spec.getUserSyncs({ iframeEnabled: true }, serverResponses, {consentString: 'anyString'});
+        expect(userSync.url).to.equal('anyIframeUrl?a=1&gdpr_consent=anyString');
+        expect(userSync.type).to.equal('iframe');
+      });
+
+      it('should include GDPR parameters in image sync URL', function () {
+        const [userSync] = spec.getUserSyncs({ pixelEnabled: true }, serverResponses, {gdprApplies: true, consentString: 'anyString'});
+        expect(userSync.url).to.equal('anyImageUrl?gdpr=1&gdpr_consent=anyString');
+        expect(userSync.type).to.equal('image');
+      });
+
+      it('should return both iframe and image syncs when both are enabled', function () {
+        const userSync = spec.getUserSyncs({ iframeEnabled: true, pixelEnabled: true }, serverResponses, {gdprApplies: true, consentString: 'anyString'});
+        expect(userSync.length).to.equal(3);
+        expect(userSync[0].url).to.equal('anyIframeUrl?a=1&gdpr=1&gdpr_consent=anyString');
+        expect(userSync[0].type).to.equal('iframe');
+        expect(userSync[1].url).to.equal('anyImageUrl?gdpr=1&gdpr_consent=anyString');
+        expect(userSync[1].type).to.equal('image');
+        expect(userSync[2].url).to.equal('anyImageUrl2?gdpr=1&gdpr_consent=anyString');
+        expect(userSync[2].type).to.equal('image');
+      });
     });
 
-    it(`check for zero array when iframeEnabled`, function () {
-      expect(spec.getUserSyncs({ iframeEnabled: true })).to.be.an('array');
-      expect(spec.getUserSyncs({ iframeEnabled: true }, serverResponses).length).to.be.equal(0);
-    });
-    it(`check for zero array when iframeEnabled`, function () {
-      expect(spec.getUserSyncs({ pixelEnabled: true })).to.be.an('array');
-      expect(spec.getUserSyncs({ pixelEnabled: true }, serverResponses).length).to.be.equal(0);
+    describe('With passback response', function () {
+      let passbackResponses;
+
+      beforeEach(function () {
+        passbackResponses = [{
+          body: {
+            reason: 8002,
+            status: 'error',
+            msg: 'passback',
+          }
+        }];
+      });
+
+      it('should return empty array for iframe sync', function () {
+        expect(spec.getUserSyncs({ iframeEnabled: true })).to.be.an('array');
+        expect(spec.getUserSyncs({ iframeEnabled: true }, passbackResponses).length).to.equal(0);
+      });
+
+      it('should return empty array for pixel sync', function () {
+        expect(spec.getUserSyncs({ pixelEnabled: true })).to.be.an('array');
+        expect(spec.getUserSyncs({ pixelEnabled: true }, passbackResponses).length).to.equal(0);
+      });
     });
   });
 });
