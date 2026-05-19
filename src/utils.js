@@ -1,14 +1,14 @@
-import {config} from './config.js';
+import { config } from './config.js';
 
-import {EVENTS} from './constants.js';
-import {PbPromise} from './utils/promise.js';
+import { EVENTS } from './constants.js';
+import { PbPromise } from './utils/promise.js';
 import deepAccess from 'dlv/index.js';
-import {isArray, isFn, isStr, isPlainObject} from './utils/objects.js';
+import { isArray, isFn, isStr, isPlainObject } from './utils/objects.js';
 
 export { deepAccess };
 export { dset as deepSetValue } from 'dset';
 export * from './utils/objects.js'
-export {getWinDimensions, resetWinDimensions, getScreenOrientation} from './utils/winDimensions.js';
+export { getWinDimensions, resetWinDimensions, getScreenOrientation } from './utils/winDimensions.js';
 const consoleExists = Boolean(window.console);
 const consoleLogExists = Boolean(consoleExists && window.console.log);
 const consoleInfoExists = Boolean(consoleExists && window.console.info);
@@ -47,6 +47,7 @@ export const internal = {
   parseQS,
   formatQS,
   deepEqual,
+  runBackgroundTask,
 };
 
 const prebidInternal = {};
@@ -89,7 +90,7 @@ export function generateUUID(placeholder) {
  */
 function _getRandomData() {
   if (window && window.crypto && window.crypto.getRandomValues) {
-    return crypto.getRandomValues(new Uint8Array(1))[0] % 16;
+    return window.crypto.getRandomValues(new Uint8Array(1))[0] % 16;
   } else {
     return Math.random() * 16;
   }
@@ -164,7 +165,7 @@ export function parseGPTSingleSizeArray(singleSize) {
 }
 
 export function sizeTupleToRtbSize(size) {
-  return {w: size[0], h: size[1]};
+  return { w: size[0], h: size[1] };
 }
 
 // Parse a GPT style single size array, (i.e [300, 250])
@@ -204,6 +205,18 @@ export function canAccessWindowTop() {
   } catch (e) {
     return false;
   }
+}
+
+/**
+ * Returns the window to use for fingerprinting reads: win if provided, otherwise top or self.
+ * @param {Window} [win]
+ * @returns {Window}
+ */
+export function getFallbackWindow(win) {
+  if (win) {
+    return win;
+  }
+  return canAccessWindowTop() ? internal.getWindowTop() : internal.getWindowSelf();
 }
 
 /**
@@ -433,12 +446,54 @@ export function waitForElementToLoad(element, timeout) {
  * @param  {function} [done] an optional exit callback, used when this usersync pixel is added during an async process
  * @param  {Number} [timeout] an optional timeout in milliseconds for the image to load before calling `done`
  */
+
+export function politeTriggerPixel(url) {
+  const triggerSync = () => {
+    if (window.fetch && window.Request) {
+      try {
+        const request = new Request(url, {
+          method: 'GET',
+          mode: 'no-cors',
+          credentials: 'include',
+          keepalive: true
+        });
+        window.fetch(request).catch(() => triggerPixel(url));
+        return;
+      } catch (e) {}
+    }
+    triggerPixel(url);
+  };
+
+  runBackgroundTask(triggerSync);
+}
+
+export function politeInsertUserSyncIframe(url) {
+  runBackgroundTask(() => insertUserSyncIframe(url));
+}
+
 export function triggerPixel(url, done, timeout) {
   const img = new Image();
   if (done && internal.isFn(done)) {
     waitForElementToLoad(img, timeout).then(done);
   }
   img.src = url;
+}
+
+/**
+ * Run a task at low priority when supported by the browser, or immediately as fallback.
+ * @param {function} task
+ */
+export function runBackgroundTask(task) {
+  const scheduler = window.scheduler;
+  if (scheduler?.postTask) {
+    scheduler.postTask(task, { priority: 'background' }).catch(() => task());
+    return;
+  }
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(() => task(), { timeout: 2000 });
+    return;
+  }
+  task();
 }
 
 /**
@@ -642,6 +697,14 @@ export function isSafariBrowser() {
   return /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
 }
 
+export function isFirefoxBrowser() {
+  return /firefox|fxios/i.test(navigator.userAgent);
+}
+
+export function isChromeIOSBrowser() {
+  return /crios|crmo/i.test(navigator.userAgent);
+}
+
 export function replaceMacros(str, subs) {
   if (!str) return;
   return Object.entries(subs).reduce((str, [key, val]) => {
@@ -650,7 +713,7 @@ export function replaceMacros(str, subs) {
 }
 
 export function replaceAuctionPrice(str, cpm) {
-  return replaceMacros(str, {AUCTION_PRICE: cpm})
+  return replaceMacros(str, { AUCTION_PRICE: cpm })
 }
 
 export function replaceClickThrough(str, clicktag) {
@@ -760,7 +823,7 @@ export function groupBy(xs, key) {
  */
 export function isValidMediaTypes(mediaTypes) {
   const SUPPORTED_MEDIA_TYPES = ['banner', 'native', 'video', 'audio'];
-  const SUPPORTED_STREAM_TYPES = ['instream', 'outstream', 'adpod'];
+  const SUPPORTED_STREAM_TYPES = ['instream', 'outstream'];
 
   const types = Object.keys(mediaTypes);
 
@@ -798,7 +861,9 @@ export const compareCodeAndSlot = (slot, adUnitCode) => slot.getAdUnitPath() ===
  * @return filter function
  */
 export function isAdUnitCodeMatchingSlot(slot) {
-  return (adUnitCode) => compareCodeAndSlot(slot, adUnitCode);
+  const customGptSlotMatching = config.getConfig('customGptSlotMatching');
+  const match = isFn(customGptSlotMatching) && customGptSlotMatching(slot);
+  return isFn(match) ? match : (adUnitCode) => compareCodeAndSlot(slot, adUnitCode);
 }
 
 /**
@@ -808,7 +873,7 @@ export function isAdUnitCodeMatchingSlot(slot) {
  * @return {string} warning message to display when condition is met
  */
 export function unsupportedBidderMessage(adUnit, bidder) {
-  const mediaType = Object.keys(adUnit.mediaTypes || {'banner': 'banner'}).join(', ');
+  const mediaType = Object.keys(adUnit.mediaTypes || { 'banner': 'banner' }).join(', ');
 
   return `
     ${adUnit.code} is a ${mediaType} ad unit
@@ -1000,7 +1065,7 @@ function mergeDeepHelper(target, source) {
     const val = source[key];
 
     if (isPlainObject(val)) {
-      if (!target[key]) {
+      if (!isPlainObject(target[key])) {
         target[key] = {};
       }
       mergeDeepHelper(target[key], val);
@@ -1125,7 +1190,7 @@ export function getUnixTimestampFromNow(timeValue = 0, timeUnit = 'd') {
  */
 export function convertObjectToArray(obj) {
   return Object.keys(obj).map(key => {
-    return {[key]: obj[key]};
+    return { [key]: obj[key] };
   });
 }
 

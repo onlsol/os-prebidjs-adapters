@@ -1,7 +1,8 @@
 import {deepAccess, logMessage, getBidIdParameter, logError, logWarn} from '../src/utils.js';
 import {registerBidder} from '../src/adapters/bidderFactory.js';
 import {BANNER, VIDEO} from '../src/mediaTypes.js';
-import { getViewportSize } from '../libraries/viewport/viewport.js'
+import { getViewportSize } from '../libraries/viewport/viewport.js';
+import { percentInView } from '../libraries/percentInView/percentInView.js'
 
 import {
   fillUsersIds,
@@ -17,7 +18,7 @@ import {
   extractUserSegments,
   interpretResponse
 } from '../libraries/dspxUtils/bidderUtils.js';
-import {Renderer} from '../src/Renderer.js';
+import { Renderer } from '../src/Renderer.js';
 
 /**
  * @typedef {import('../src/adapters/bidderFactory.js').BidRequest} BidRequest
@@ -103,6 +104,15 @@ export const spec = {
         }
       }
 
+      // Add viewability metrics
+      const slotElement = document.getElementById(pbcode);
+      if (slotElement) {
+        const rect = slotElement.getBoundingClientRect();
+        payload.svx = Math.round(rect.left);
+        payload.svy = Math.round(rect.top);
+        payload.svv = Math.round(percentInView(slotElement));
+      }
+
       if (auctionId) {
         payload.auctionId = auctionId;
       }
@@ -177,8 +187,8 @@ export const spec = {
     logMessage('DSPx: bidRequest', bidRequest);
     return interpretResponse(serverResponse, bidRequest, (bidRequest, response) => newRenderer(bidRequest, response));
   },
-  getUserSyncs: function(syncOptions, serverResponses, gdprConsent, uspConsent) {
-    return handleSyncUrls(syncOptions, serverResponses, gdprConsent);
+  getUserSyncs: function(syncOptions, serverResponses, gdprConsent, uspConsent, gppConsent) {
+    return handleSyncUrls(syncOptions, serverResponses, gdprConsent, uspConsent, gppConsent);
   }
 }
 

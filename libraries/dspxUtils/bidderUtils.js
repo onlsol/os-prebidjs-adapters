@@ -1,5 +1,7 @@
 import { BANNER, VIDEO } from '../../src/mediaTypes.js';
 import {deepAccess, isArray, isEmptyStr, isFn} from '../../src/utils.js';
+import { percentInView } from '../percentInView/percentInView.js';
+import { hasPurpose1Consent } from '../../src/utils/gdpr.js';
 /**
  * @typedef {import('../src/adapters/bidderFactory.js').BidderRequest} BidderRequest
  * @typedef {import('../src/adapters/bidderFactory.js').BidRequest} BidRequest
@@ -13,7 +15,10 @@ import {deepAccess, isArray, isEmptyStr, isFn} from '../../src/utils.js';
  * @param payload
  */
 export function fillUsersIds(bidRequest, payload) {
-  if (bidRequest.hasOwnProperty('userIdAsEids')) {
+  // Support both legacy userIdAsEids and new ORTB2 user.ext.eids format
+  const eids = bidRequest.userIdAsEids || deepAccess(bidRequest, 'ortb2.user.ext.eids') || [];
+
+  if (eids.length > 0) {
     const didMapping = {
       did_netid: 'netid.de',
       did_uid2: 'uidapi.com',
@@ -40,7 +45,7 @@ export function fillUsersIds(bidRequest, payload) {
         }
       }],
     };
-    bidRequest.userIdAsEids?.forEach(eid => {
+    eids.forEach(eid => {
       for (const paramName in didMapping) {
         let targetSource = didMapping[paramName];
 
@@ -303,32 +308,60 @@ export function extractUserSegments(bid) {
   return undefined;
 }
 
-export function handleSyncUrls(syncOptions, serverResponses, gdprConsent, uspConsent) {
+function buildConsentParams(gdprConsent, uspConsent, gppConsent) {
+  const params = [];
+
+  if (gdprConsent) {
+    if ('gdprApplies' in gdprConsent && typeof gdprConsent.gdprApplies === 'boolean') {
+      params.push(`gdpr=${Number(gdprConsent.gdprApplies)}`);
+    }
+    if (gdprConsent.consentString) {
+      params.push(`gdpr_consent=${encodeURIComponent(gdprConsent.consentString)}`);
+    }
+  }
+
+  if (uspConsent) {
+    params.push(`us_privacy=${encodeURIComponent(uspConsent)}`);
+  }
+
+  if (gppConsent) {
+    if (gppConsent.gppString) {
+      params.push(`gpp=${encodeURIComponent(gppConsent.gppString)}`);
+    }
+    if (gppConsent.applicableSections && gppConsent.applicableSections.length) {
+      gppConsent.applicableSections.forEach(sid => {
+        params.push(`gpp_sid=${encodeURIComponent(sid)}`);
+      });
+    }
+  }
+
+  return params.join('&');
+}
+
+export function handleSyncUrls(syncOptions, serverResponses, gdprConsent, uspConsent, gppConsent) {
+  // Check Purpose 1 consent for storageControl strict enforcement (Prebid.js 11.x)
+  if (!hasPurpose1Consent(gdprConsent)) {
+    return [];
+  }
+
   if (!serverResponses || serverResponses.length === 0) {
     return [];
   }
 
   const syncs = [];
-  let gdprParams = '';
-  if (gdprConsent) {
-    if ('gdprApplies' in gdprConsent && typeof gdprConsent.gdprApplies === 'boolean') {
-      gdprParams = `gdpr=${Number(gdprConsent.gdprApplies)}&gdpr_consent=${gdprConsent.consentString}`;
-    } else {
-      gdprParams = `gdpr_consent=${gdprConsent.consentString}`;
-    }
-  }
+  const consentParams = buildConsentParams(gdprConsent, uspConsent, gppConsent);
 
   if (serverResponses.length > 0 && serverResponses[0].body.userSync) {
     if (syncOptions.iframeEnabled) {
       serverResponses[0].body.userSync.iframeUrl.forEach((url) => syncs.push({
         type: 'iframe',
-        url: appendToUrl(url, gdprParams)
+        url: appendToUrl(url, consentParams)
       }));
     }
     if (syncOptions.pixelEnabled) {
       serverResponses[0].body.userSync.imageUrl.forEach((url) => syncs.push({
         type: 'image',
-        url: appendToUrl(url, gdprParams)
+        url: appendToUrl(url, consentParams)
       }));
     }
   }
@@ -360,13 +393,16 @@ export function interpretResponse(serverResponse, bidRequest, rendererFunc) {
       }
     };
 
+    // Set default mediaType to banner, override to video if vast response
+    bidResponse.mediaType = BANNER;
+
     if (response.vastUrl) {
       bidResponse.vastUrl = response.vastUrl;
-      bidResponse.mediaType = 'video';
+      bidResponse.mediaType = VIDEO;
     }
     if (response.vastXml) {
       bidResponse.vastXml = response.vastXml;
-      bidResponse.mediaType = 'video';
+      bidResponse.mediaType = VIDEO;
     }
     if (response.renderer) {
       bidResponse.renderer = rendererFunc(bidRequest, response);
